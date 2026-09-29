@@ -183,8 +183,19 @@ function erstellen({ montag, personen, eintraege, einstellungen, erstelltAm = ne
 // «Stempelkorrekturen_KW39_2026.pdf», bei einer einzelnen Person mit Namen
 function dateiname(montag, personen) {
   const { woche, jahr } = kalenderwoche(montag);
-  const zusatz = personen.length === 1 ? '_' + personen[0].name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') : '';
+  const zusatz = personen.length === 1 ? '_' + nurAscii(personen[0].name) : '';
   return `Stempelkorrekturen_KW${woche}_${jahr}${zusatz}.pdf`;
+}
+
+// Dateinamen ohne Umlaute und Sonderzeichen – manche Handy-Apps kommen damit nicht zurecht.
+// «Jürg Müller» → «Juerg-Mueller»
+function nurAscii(text) {
+  return text
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // é → e usw.
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 globalThis.Blatt = {

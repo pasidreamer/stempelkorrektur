@@ -454,10 +454,9 @@ function zeichneSenden() {
   $('#s-ansehen').disabled = leer;
 
   $('#s-hinweis').textContent = kannPdfTeilen(new File([''], 'probe.pdf', { type: 'application/pdf' }))
-    ? `Im nächsten Schritt deine Mail-App wählen (z. B. Mail, Gmail oder Outlook) – das PDF ist angehängt.${
-        e.empfaenger ? ` Die Adresse ${e.empfaenger} liegt dann in der Zwischenablage: ins Feld «An» tippen und «Einsetzen».` : ''
-      }`
+    ? 'Im nächsten Schritt dein Mailprogramm wählen (z. B. Outlook). Das PDF ist schon angehängt, den Empfänger trägst du selbst ein.'
     : 'Das PDF wird im Download-Ordner gespeichert und die Mail öffnet sich. Dann das PDF in die Mail ziehen und senden.';
+  $('#s-hinweis').classList.remove('fehler');
 
   // Text-Mail ohne PDF (wie bisher)
   const text = mailText({ montag: ansicht.montag, personen, eintraege: wochenEintraege(), einstellungen: e });
@@ -530,14 +529,23 @@ async function pdfSenden() {
   const text = begleitText({ montag: ansicht.montag, personen, eintraege: wochenEintraege(), einstellungen: e });
 
   if (kannPdfTeilen(datei)) {
-    // «Teilen» kann keinen Empfänger mitgeben (das erlaubt das Handy nicht). Darum die Adresse
-    // in die Zwischenablage legen. Nicht abwarten, sonst verfällt die Erlaubnis zum Teilen.
-    if (e.empfaenger) navigator.clipboard?.writeText(e.empfaenger).catch(() => {});
+    // Das Handy fragt, mit welchem Programm geteilt werden soll (z. B. Outlook); das PDF ist
+    // angehängt. Einen Empfänger kann «Teilen» nicht mitgeben, den trägt man selbst ein.
+    // Wichtig: Vor share() nichts anderes Erlaubnispflichtiges tun (früher: Adresse in die
+    // Zwischenablage kopieren) – auf dem Samsung kam danach die Auswahl gar nicht mehr.
     try {
       await navigator.share({ files: [datei], title: titel, text });
-      sendenAbschliessen('PDF an die Mail-App übergeben');
+      sendenAbschliessen('PDF an das Mailprogramm übergeben');
     } catch (fehler) {
-      if (fehler.name !== 'AbortError') zeigeToast('Teilen hat nicht geklappt – bitte «PDF ansehen» nutzen');
+      if (fehler.name === 'AbortError') return; // Auswahl selbst geschlossen
+      // Teilen hat nicht geklappt: PDF stattdessen speichern, damit man es von Hand anhängen kann,
+      // und den Grund anzeigen (hilft bei der Fehlersuche).
+      const url = URL.createObjectURL(datei);
+      oeffneLink(url, datei.name);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      const hinweis = $('#s-hinweis');
+      hinweis.textContent = `Teilen hat nicht geklappt (${fehler.name}: ${fehler.message}). Das PDF wurde stattdessen gespeichert – im Mailprogramm als Anhang wählen.`;
+      hinweis.classList.add('fehler');
     }
     return;
   }

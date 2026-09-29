@@ -58,7 +58,9 @@ test('Breitenberechnung und Kürzen', () => {
 
 test('Dateiname', () => {
   assert.equal(Blatt.dateiname('2026-09-21', personen), 'Stempelkorrekturen_KW39_2026.pdf');
-  assert.equal(Blatt.dateiname('2026-09-21', [personen[1]]), 'Stempelkorrekturen_KW39_2026_Jürg-Müller.pdf');
+  // ohne Umlaute, damit jede Handy-App den Anhang annimmt
+  assert.equal(Blatt.dateiname('2026-09-21', [personen[1]]), 'Stempelkorrekturen_KW39_2026_Juerg-Mueller.pdf');
+  assert.equal(Blatt.dateiname('2026-09-21', [{ name: 'André Weiß' }]), 'Stempelkorrekturen_KW39_2026_Andre-Weiss.pdf');
 });
 
 test('Vorgesetzte/r pro Person und Unterschriftszeilen auf jeder Seite', () => {

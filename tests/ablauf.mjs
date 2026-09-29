@@ -191,7 +191,7 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { window.__ablage.push(t); } } });`);
   await klick('#btn-senden');
   await sleep(300);
-  pruefe((await text('#s-hinweis'))?.includes('Outlook'), `Handy: Hinweis «Mail oder Outlook wählen» (${await text('#s-hinweis')})`);
+  pruefe((await text('#s-hinweis'))?.includes('Mailprogramm wählen'), `Handy: Hinweis «Mailprogramm wählen» (${await text('#s-hinweis')})`);
   await shot(`${ordner}/06b-senden-handy.png`);
   await klick('#s-pdf-senden');
   await sleep(600);
@@ -200,8 +200,22 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   pruefe(new RegExp(`^${pdfName}\\d{4}_Lena\\.pdf$`).test(geteilt?.name ?? ''), 'Handy: nur die geänderte Person ist vorausgewählt, Name im Dateinamen');
   pruefe(geteilt?.titel.startsWith('Stempelkorrekturen KW') && geteilt.text.includes('Im Anhang'), 'Handy: Betreff und Begleittext dabei');
   const ablage = await evaluate('window.__ablage');
-  pruefe(ablage[0] === 'buero@example.ch', `Handy: Büro-Adresse liegt in der Zwischenablage (${ablage[0]})`);
+  pruefe(ablage.length === 0, `Handy: vor dem Teilen wird nichts in die Zwischenablage kopiert (${ablage.length})`);
   pruefe((await text('#status'))?.startsWith('Mail erstellt'), `Handy: Status danach (${await text('#status')})`);
+
+  // 6c. Handy: Teilen scheitert → PDF wird gespeichert, Grund steht im Senden-Blatt
+  await evaluate(`window.__links = [];
+    HTMLAnchorElement.prototype.click = function () { window.__links.push({ href: this.href, download: this.download }); };
+    navigator.share = async () => { throw new DOMException('Test: Teilen verweigert', 'NotAllowedError'); };`);
+  await klick('#btn-senden');
+  await sleep(300);
+  await klick('#s-pdf-senden');
+  await sleep(600);
+  const ersatz = await evaluate('window.__links[0] ?? null');
+  pruefe(ersatz?.href.startsWith('blob:') && ersatz.download.endsWith('.pdf'), `Handy: bei Fehler wird das PDF gespeichert (${ersatz?.download})`);
+  pruefe((await text('#s-hinweis'))?.includes('NotAllowedError') && (await offen('dlg-senden')), 'Handy: Grund wird angezeigt, Senden-Blatt bleibt offen');
+  await shot(`${ordner}/06c-teilen-fehler.png`);
+  await klick('#dlg-senden [data-schliessen]');
 
   // 7. Woche wechseln
   await klick('#woche-vor');

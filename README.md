@@ -33,11 +33,12 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
     Nachtzuschlag, darunter das Wochentotal und unten die Unterschriftsfelder wie auf dem Papier
     (Visum Mitarbeiter/in, Visum Vorgesetzte/r, Erfassungsdatum & Visum Personalbüro).
     «PDF ansehen» zeigt es vorher an.
-  - **Auf dem Handy** öffnet sich «Teilen»: die Mail-App wählen (iPhone: Mail/Outlook, Samsung:
-    Gmail/E-Mail/Outlook), das PDF ist angehängt,
-    Betreff und ein kurzer Text mit den Wochentotalen stehen drin. Die Büro-Adresse legt die App
-    in die Zwischenablage: ins Feld «An» tippen und «Einsetzen» (die Mail-App schlägt sie nach dem
-    ersten Mal auch selbst vor).
+  - **Auf dem Handy** fragt das Handy, mit welchem Programm geteilt werden soll: das
+    Mailprogramm wählen (z. B. Outlook). Das PDF ist angehängt, Betreff und ein kurzer Text mit den
+    Wochentotalen stehen drin. Den Empfänger trägt man selbst ein, denn «Teilen» kann keinen
+    mitgeben. Klappt das Teilen nicht, speichert die App das PDF und zeigt den Grund an.
+    (Bis 29.09. abends kopierte die App vorher die Adresse in die Zwischenablage. Auf dem Samsung
+    kam danach die Auswahl nicht mehr, deshalb ist das wieder entfernt.)
   - **Am PC** wird das PDF im Download-Ordner gespeichert und die Mail öffnet sich mit Empfänger,
     Betreff und Text. Das PDF zieht man dann in die Mail.
   - **Ohne PDF:** Unter «Lieber ohne PDF, nur als Text-Mail» gibt es die alte Text-Mail mit
@@ -85,8 +86,10 @@ Postausgang.
 
 Die App erscheint danach mit eigenem Symbol bei den Apps. Am 29.09. geprüft: Android meldet die App
 als installierbar (keine Fehler im Manifest). Den PDF-Versand habe ich mit einem vorgetäuschten
-Samsung-Handy geprüft: PDF über «Teilen», Adresse in der Zwischenablage. Auf einem echten Samsung ist
-er noch ungetestet. «PDF ansehen» lädt das PDF auf Android meist herunter, statt es anzuzeigen.
+Samsung-Handy geprüft: PDF über «Teilen». Auf dem echten Samsung meldete der User am 29.09. abends,
+dass nur die Adresse kopiert wurde und keine Auswahl kam. Das Kopieren ist darum entfernt (v7); ob
+die Auswahl jetzt kommt, ist auf dem echten Samsung noch zu bestätigen. «PDF ansehen» lädt das PDF
+auf Android meist herunter, statt es anzuzeigen.
 
 ## Dateien
 
@@ -141,7 +144,7 @@ die Handys die neue Fassung sicher übernehmen.
 `index.html` nur als Vorschau an, ohne dass die App läuft. Dafür braucht es eine Webadresse
 (Hosting).
 
-## Verifikationsstand (29.09.2026, abends: Wochenstand dazu)
+## Verifikationsstand (29.09.2026, spätabends: Teilen ohne Zwischenablage)
 
 Geprüft:
 - `npm test`: 21/21 grün. Davon 13 Rechentests (normaler Tag, 23–04 Uhr = 5:00 h +1:15 h, Abend
@@ -151,24 +154,25 @@ Geprüft:
   Klammern richtig kodiert, Kürzen mit «…», Dateiname), Vorgesetzte/r pro Person und
   Unterschriftsfelder auf jedem Blatt, übervolle Woche (Tabelle und Unterschriften laufen auf eine
   Folgeseite, nichts ragt über den Rand) und 2 Speichertests (alte Daten werden ergänzt).
-- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 45/45 grün.
+- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 47/47 grün.
   Geprüft werden Einrichtung (inkl. Vorgesetzte/r vorbelegt), Team-Eintrag für 4 Personen, Nachteintrag, Fehlermeldung,
   Wochenstand (15:15 h / 43:00 h, «noch 27:45 h», Soll per Einstellung mit Komma geändert → grün
   «Soll genau erreicht»), kein seitliches Scrollen, Senden-Blatt (Übersicht, Hinweis), Text-Mail-Link,
   «PDF ansehen» (gültiges PDF mit 4 Seiten, Vorgesetzte/r und Unterschriften je Blatt), PC-Weg (PDF-Download mit richtigem Namen, danach
   mailto mit Empfänger, Betreff, Begleittext), Status, Warnung nach Änderung, Handy-Weg (iPhone
   vorgetäuscht: PDF wird mit Betreff und Text an «Teilen» übergeben, nur geänderte Person
-  vorausgewählt, Büro-Adresse in der Zwischenablage), Wochenwechsel, dunkles Design, Service Worker, Start **offline**, keine
+  vorausgewählt, nichts wird in die Zwischenablage kopiert; scheitert das Teilen, wird das PDF
+  gespeichert und der Grund angezeigt), Wochenwechsel, dunkles Design, Service Worker, Start **offline**, keine
   Konsolenfehler.
-- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 42/42 grün (ohne die 3
+- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 44/44 grün (ohne die 3
   Offline-Prüfungen).
 - Das von der App erzeugte PDF im PDF-Programm von Edge angesehen: 4 Seiten, Umlaute, Spalten
   und Totale korrekt.
 
 Noch nicht geprüft (braucht ein echtes Handy):
 - Vom User am 29.09. auf dem iPhone bestätigt: «PDF per Mail senden» hängt das PDF an. Der Empfänger
-  kommt dabei nicht mit, das lässt «Teilen» nicht zu. Noch nicht auf dem Gerät geprüft: ob das
-  Einsetzen der Adresse aus der Zwischenablage klappt.
+  kommt dabei nicht mit, das lässt «Teilen» nicht zu.
+- Samsung: Fassung v7 (ohne Zwischenablage) noch nicht auf dem echten Gerät bestätigt.
 - «PDF ansehen» auf dem iPhone, besonders wenn die App vom Home-Bildschirm gestartet ist.
 - Zeitauswahl, Tastatur und «Zum Home-Bildschirm» auf dem echten Gerät.
 - Am Firmen-PC: ob Outlook beim Mail-Link aufgeht (hängt davon ab, welches Mailprogramm in Windows
