@@ -5,7 +5,8 @@
 // Alles Nötige wird unten unter dem Namen «Mail» bereitgestellt.
 
 (() => {
-const { berechne, stundenText, kurzDatum, kalenderwoche, plusTage, wochentagIndex, WOCHENTAGE_KURZ } = Zeit; // aus zeit.js
+const { berechneEintrag, istAbwesenheit, ABWESENHEITEN, dauer, stundenText, kurzDatum, kalenderwoche, plusTage, wochentagIndex, WOCHENTAGE_KURZ } =
+  Zeit; // aus zeit.js
 
 const LINIE = '────────────────────';
 
@@ -29,6 +30,7 @@ function mailText({ montag, personen, eintraege, einstellungen }) {
   const nacht = einstellungen.nacht;
   const zeilen = [];
   let nachtVorhanden = false;
+  let abwesenheitVorhanden = false;
 
   zeilen.push(einstellungen.anrede?.trim() || 'Hallo', '');
   zeilen.push(`Hier die Stempelkorrekturen für KW ${woche} (Mo ${kurzDatum(montag)} – So ${kurzDatum(plusTage(montag, 6), true)}).`);
@@ -42,10 +44,18 @@ function mailText({ montag, personen, eintraege, einstellungen }) {
     let summeZuschlag = 0;
 
     for (const e of eigene) {
-      const r = berechne(e, nacht);
+      const r = berechneEintrag(e, nacht);
       summeNetto += r.netto;
       summeZuschlag += r.zuschlag;
       if (r.zuschlag > 0) nachtVorhanden = true;
+
+      if (istAbwesenheit(e)) {
+        abwesenheitVorhanden = true;
+        zeilen.push('', tagText(e.datum), `${ABWESENHEITEN[e.art]} (ganzer Tag)`);
+        if (e.bemerkung) zeilen.push(`Bemerkung: ${e.bemerkung}`);
+        zeilen.push(`= ${dauer(r.netto)}`);
+        continue;
+      }
 
       const folgetag = plusTage(e.datum, 1);
       const bisText = r.ueberMitternacht ? `${e.bis} (am ${WOCHENTAGE_KURZ[wochentagIndex(folgetag)]} ${kurzDatum(folgetag)})` : e.bis;
@@ -60,6 +70,9 @@ function mailText({ montag, personen, eintraege, einstellungen }) {
 
   if (nachtVorhanden) {
     zeilen.push('', '', `Nachtarbeit ${nacht.von}–${nacht.bis} Uhr mit ${nacht.prozent} % Zuschlag (Pause anteilig abgezogen).`);
+  }
+  if (abwesenheitVorhanden) {
+    zeilen.push('', `Krank/Ferien zählen als ganzer Tag (Wochensoll ${einstellungen.wochensoll} h ÷ 5).`);
   }
 
   zeilen.push('', '', 'Freundliche Grüsse');
@@ -81,7 +94,7 @@ function begleitText({ montag, personen, eintraege, einstellungen }) {
     let netto = 0;
     let zuschlag = 0;
     for (const e of eintraege.filter((x) => x.personId === person.id)) {
-      const r = berechne(e, einstellungen.nacht);
+      const r = berechneEintrag(e, einstellungen.nacht);
       netto += r.netto;
       zuschlag += r.zuschlag;
     }
@@ -112,7 +125,11 @@ function mailtoLink({ an, cc, betreff, text }) {
 // Kurzer «Fingerabdruck» der Einträge. Ändert sich ein Eintrag nach dem Senden,
 // ändert sich auch der Fingerabdruck – so merkt die App, dass neu gesendet werden sollte.
 function signatur(eintraege) {
-  const text = JSON.stringify(sortiert(eintraege).map((e) => [e.datum, e.von, e.bis, e.pause, e.grund, e.bemerkung || '']));
+  // Krank/Ferien hängen Art und Minuten an. Bei normalen Einträgen bleibt der Fingerabdruck
+  // wie früher, sonst würden schon gesendete Wochen plötzlich als «geändert» gelten.
+  const text = JSON.stringify(
+    sortiert(eintraege).map((e) => [e.datum, e.von, e.bis, e.pause, e.grund, e.bemerkung || '', ...(e.art ? [e.art, e.minuten] : [])]),
+  );
   let h = 5381;
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);

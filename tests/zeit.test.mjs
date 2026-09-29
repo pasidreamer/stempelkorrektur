@@ -93,3 +93,18 @@ test('Dauer-Anzeige', () => {
   assert.equal(dauer(75), '1:15 h');
   assert.equal(dauer(2400), '40:00 h');
 });
+
+test('Krank/Ferien: ganzer Tag = Wochensoll ÷ 5', () => {
+  const { tagessoll, berechneEintrag, istAbwesenheit } = globalThis.Zeit;
+  assert.equal(tagessoll(43), 516); // 8:36 h
+  assert.equal(dauer(tagessoll(43)), '8:36 h');
+  assert.equal(tagessoll(42.5), 510); // 8:30 h
+  const krank = { art: 'krank', minuten: 516, datum: '2026-09-28', von: '', bis: '', pause: 0 };
+  assert.ok(istAbwesenheit(krank));
+  assert.deepEqual(
+    [berechneEintrag(krank, nacht).netto, berechneEintrag(krank, nacht).zuschlag],
+    [516, 0],
+  );
+  // normale Arbeit läuft weiter über berechne()
+  assert.equal(berechneEintrag({ von: '07:00', bis: '16:30', pause: 30 }, nacht).netto, 540);
+});

@@ -43,7 +43,7 @@ function summe(eintraege) {
   let netto = 0;
   let zuschlag = 0;
   for (const e of eintraege) {
-    const r = zeit.berechne(e, einstellungen().nacht);
+    const r = zeit.berechneEintrag(e, einstellungen().nacht);
     netto += r.netto;
     zuschlag += r.zuschlag;
   }
@@ -165,6 +165,14 @@ function zeichneTage() {
     const s = summe(amTag);
     const zeilen = amTag
       .map((e) => {
+        if (zeit.istAbwesenheit(e)) {
+          const name = zeit.ABWESENHEITEN[e.art];
+          return `
+          <button type="button" class="eintrag eintrag-${e.art}" data-id="${e.id}" aria-label="${name} bearbeiten">
+            <div class="eintrag-zeit">${name}</div>
+            <div class="eintrag-info">ganzer Tag${amTag.length > 1 ? ` · ${zeit.dauer(e.minuten)}` : ''}${e.bemerkung ? ` · ${esc(e.bemerkung)}` : ''}</div>
+          </button>`;
+        }
         const r = zeit.berechne(e, nacht);
         const bis = r.ueberMitternacht ? `${e.bis} <span class="leise">(+1 Tag)</span>` : e.bis;
         const pause = e.pause > 0 ? `Pause ${e.pause} min` : 'ohne Pause';
@@ -238,8 +246,15 @@ function zeigeToast(text) {
 
 // ---------- Eintrag-Blatt ----------
 
+const ARTEN = [
+  ['arbeit', 'Arbeit'],
+  ['krank', 'Krank'],
+  ['ferien', 'Ferien'],
+];
+
 const editor = {
   id: null, // gesetzt beim Bearbeiten
+  art: 'arbeit', // arbeit | krank | ferien
   datum: null,
   besitzer: null, // Person des bearbeiteten Eintrags (kann nicht abgewählt werden)
   personen: new Set(),
@@ -252,9 +267,15 @@ const editor = {
 function oeffneEditor({ datum, id }) {
   const e = id ? zustand.eintraege.find((x) => x.id === id) : null;
   const vorschlag = zustand.zuletzt ?? { von: '07:00', bis: '16:30', pause: 30, grund: einstellungen().gruende[0] ?? '' };
-  const werte = e ?? { ...vorschlag, datum, bemerkung: '' };
+  // Bei Krank/Ferien gibt es keine Zeiten: für den Fall, dass man auf «Arbeit» umschaltet,
+  // trotzdem die üblichen Werte vorschlagen.
+  let werte;
+  if (!e) werte = { ...vorschlag, datum, bemerkung: '' };
+  else if (zeit.istAbwesenheit(e)) werte = { ...e, von: vorschlag.von, bis: vorschlag.bis, pause: vorschlag.pause, grund: vorschlag.grund };
+  else werte = e;
 
   editor.id = e?.id ?? null;
+  editor.art = e?.art ?? 'arbeit';
   editor.datum = werte.datum;
   editor.besitzer = e?.personId ?? null;
 
@@ -291,6 +312,11 @@ function chip({ text, gedrueckt, daten, gesperrt = false }) {
 }
 
 function zeichneEditor() {
+  $('#e-art').innerHTML = ARTEN.map(
+    ([art, name]) => `<button type="button" class="art-knopf art-${art}" data-art="${art}" aria-pressed="${editor.art === art}">${name}</button>`,
+  ).join('');
+  $('#e-arbeit').hidden = editor.art !== 'arbeit';
+
   const personen = einstellungen().personen;
   $('#e-personen').innerHTML = personen
     .map((p) =>
@@ -319,6 +345,19 @@ function zeichneEditor() {
 }
 
 function editorWerte() {
+  if (editor.art !== 'arbeit') {
+    // Krank/Ferien: ganzer Tag = Wochensoll ÷ 5; die Minuten werden im Eintrag gespeichert
+    return {
+      datum: editor.datum,
+      art: editor.art,
+      minuten: zeit.tagessoll(einstellungen().wochensoll),
+      von: '',
+      bis: '',
+      pause: 0,
+      grund: zeit.ABWESENHEITEN[editor.art],
+      bemerkung: $('#e-bemerkung').value.trim(),
+    };
+  }
   const pause = editor.pauseAndere ? Math.max(0, Math.round(Number($('#e-pause-andere').value) || 0)) : editor.pause;
   const grund = editor.grundAnderes ? $('#e-grund-anderes').value.trim() : editor.grund;
   return {
@@ -335,6 +374,13 @@ function zeichneErgebnis() {
   const w = editorWerte();
   const hinweis = $('#e-mitternacht');
   const box = $('#e-ergebnis');
+
+  if (w.art) {
+    hinweis.hidden = true;
+    box.innerHTML = `<div class="ergebnis-haupt">= ${zeit.dauer(w.minuten)} (ganzer Tag)</div>
+      <div class="ergebnis-info">Wochensoll ${einstellungen().wochensoll} h ÷ 5 Tage</div>`;
+    return;
+  }
 
   if (!w.von || !w.bis || w.von === w.bis) {
     box.innerHTML = '';
@@ -366,19 +412,21 @@ function speichereEintrag(ereignis) {
 
   const fehler =
     (editor.personen.size === 0 && 'Bitte mindestens eine Person wählen.') ||
-    zeit.pruefe(w) ||
-    (!w.grund && 'Bitte einen Grund antippen.');
+    (!w.art && (zeit.pruefe(w) || (!w.grund && 'Bitte einen Grund antippen.')));
   if (fehler) {
     $('#e-fehler').textContent = fehler;
     return;
   }
 
+  // Schon vorhanden? (dann nicht doppelt anlegen)
   const gleich = (e, pid) =>
-    e.personId === pid && e.datum === w.datum && e.von === w.von && e.bis === w.bis;
+    e.personId === pid && e.datum === w.datum && (w.art ? e.art === w.art : e.von === w.von && e.bis === w.bis);
 
   let anzahl = 0;
   if (editor.id) {
     const e = zustand.eintraege.find((x) => x.id === editor.id);
+    delete e.art; // falls von Krank/Ferien auf Arbeit umgestellt wurde
+    delete e.minuten;
     Object.assign(e, w);
     anzahl = 1;
   }
@@ -389,7 +437,7 @@ function speichereEintrag(ereignis) {
     anzahl++;
   }
 
-  zustand.zuletzt = { von: w.von, bis: w.bis, pause: w.pause, grund: w.grund };
+  if (!w.art) zustand.zuletzt = { von: w.von, bis: w.bis, pause: w.pause, grund: w.grund };
   if (!editor.id) ansicht.letzteAuswahl = [...editor.personen];
 
   $('#dlg-eintrag').close();
@@ -725,6 +773,14 @@ $('#e-personen').addEventListener('click', (ereignis) => {
   if (!c || c.disabled) return;
   const pid = c.dataset.person;
   editor.personen.has(pid) ? editor.personen.delete(pid) : editor.personen.add(pid);
+  zeichneEditor();
+});
+
+$('#e-art').addEventListener('click', (ereignis) => {
+  const knopf = ereignis.target.closest('[data-art]');
+  if (!knopf) return;
+  editor.art = knopf.dataset.art;
+  $('#e-fehler').textContent = '';
   zeichneEditor();
 });
 

@@ -18,6 +18,11 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
 - **Gilt für:** Im Eintrag weitere Personen antippen, dann wird derselbe Eintrag für alle
   gespeichert. Die Auswahl bleibt für den nächsten Tag stehen (praktisch, wenn das Team zusammen
   unterwegs war).
+- **Krank und Ferien:** Im Eintrag oben «Arbeit · Krank · Ferien» wählen. Bei Krank/Ferien fallen
+  Von, Bis, Pause und Grund weg: Der Tag zählt als ganzer Tag = Wochensoll ÷ 5 (bei 43 h: 8:36 h,
+  also 8 Std. 36 Min.). Die Minuten werden im Eintrag gespeichert, damit eine spätere Änderung des
+  Wochensolls alte Wochen nicht verändert. In der Wochenansicht orange (Krank) bzw. grün (Ferien),
+  im PDF und in der Mail als «Krank (ganzer Tag)» mit 8:36 h und einer kurzen Erklärung.
 - **Über Mitternacht:** Ist «Bis» früher als «Von», endet die Arbeit am Folgetag
   (z. B. 23:00–04:00).
 - **Nachtzuschlag:** Standard 22:00–05:00 mit 25 % Zuschlag, einstellbar. Die Pause wird anteilig
@@ -111,6 +116,7 @@ statt es anzuzeigen. Das Teilen mit Chrome auf dem echten Samsung ist noch zu be
 | `manifest.webmanifest`, `icons/` | Name und Symbol für den Home-Bildschirm |
 | `tests/zeit.test.mjs` | 13 Rechentests |
 | `tests/pdf.test.mjs` | 6 PDF-Tests (gültiger Aufbau, Umlaute, Breiten, Dateiname, Vorgesetzte/r und Unterschriften, übervolle Woche); legt `tests/ausgabe/probe.pdf` und `volle-woche.pdf` ab |
+| `tests/mail.test.mjs` | 2 Tests: Mailtext mit Krank als ganzer Tag; Fingerabdruck normaler Einträge unverändert |
 | `tests/speicher.test.mjs` | 2 Tests: ältere gespeicherte Daten (ohne Vorgesetzte/n) werden richtig ergänzt |
 | `tests/ablauf.mjs`, `tests/cdp.mjs` | Spielt die ganze App in einem unsichtbaren Edge in Handygrösse durch |
 
@@ -148,17 +154,17 @@ die Handys die neue Fassung sicher übernehmen.
 `index.html` nur als Vorschau an, ohne dass die App läuft. Dafür braucht es eine Webadresse
 (Hosting).
 
-## Verifikationsstand (29.09.2026, spätabends: Samsung-Browser-Ersatzweg)
+## Verifikationsstand (29.09.2026, spät: Krank und Ferien)
 
 Geprüft:
-- `npm test`: 21/21 grün. Davon 13 Rechentests (normaler Tag, 23–04 Uhr = 5:00 h +1:15 h, Abend
+- `npm test`: 25/25 grün (inkl. Krank/Ferien: 8:36 h aus 43 h, PDF-Zeilen, Mailtext). Davon 13 Rechentests (normaler Tag, 23–04 Uhr = 5:00 h +1:15 h, Abend
   in die Nacht, früher Morgen, Pause anteilig, lange Schicht, eigenes Nachtfenster, Eingabefehler,
   Kalenderwochen inkl. Jahreswechsel und Sommerzeit, Startwoche) und 4 PDF-Tests (jedes Objekt
   steht an der Stelle, die das Verzeichnis nennt, Längenangaben stimmen, reines ASCII, ä/ü/«–»/
   Klammern richtig kodiert, Kürzen mit «…», Dateiname), Vorgesetzte/r pro Person und
   Unterschriftsfelder auf jedem Blatt, übervolle Woche (Tabelle und Unterschriften laufen auf eine
   Folgeseite, nichts ragt über den Rand) und 2 Speichertests (alte Daten werden ergänzt).
-- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 51/51 grün.
+- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 60/60 grün (zweimal hintereinander).
   Geprüft werden Einrichtung (inkl. Vorgesetzte/r vorbelegt), Team-Eintrag für 4 Personen, Nachteintrag, Fehlermeldung,
   Wochenstand (15:15 h / 43:00 h, «noch 27:45 h», Soll per Einstellung mit Komma geändert → grün
   «Soll genau erreicht»), kein seitliches Scrollen, Senden-Blatt (Übersicht, Hinweis), Text-Mail-Link,
@@ -166,10 +172,11 @@ Geprüft:
   mailto mit Empfänger, Betreff, Begleittext), Status, Warnung nach Änderung, Handy-Weg (iPhone
   vorgetäuscht: PDF wird mit Betreff und Text an «Teilen» übergeben, nur geänderte Person
   vorausgewählt, nichts wird in die Zwischenablage kopiert; scheitert das Teilen, wird das PDF
-  gespeichert und der Grund angezeigt; Samsung-Browser vorgetäuscht: kein Teilen-Versuch, PDF
+  gespeichert und der Grund angezeigt; Krank/Ferien (Felder ausgeblendet, 8:36 h, Karte, Wochenstand +8:36 h, Bearbeiten, Text-Mail
+  und PDF); Samsung-Browser vorgetäuscht: kein Teilen-Versuch, PDF
   gespeichert, Mail mit Empfänger), Wochenwechsel, dunkles Design, Service Worker, Start **offline**, keine
   Konsolenfehler.
-- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 48/48 grün (ohne die 3
+- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 57/57 grün (ohne die 3
   Offline-Prüfungen).
 - Das von der App erzeugte PDF im PDF-Programm von Edge angesehen: 4 Seiten, Umlaute, Spalten
   und Totale korrekt.

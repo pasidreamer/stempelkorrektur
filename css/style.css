@@ -182,6 +182,11 @@ h1, h2 { margin: 0; }
   display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 999px;
   background: var(--akzent-weich); color: var(--akzent); font-weight: 650; font-size: 0.9rem;
 }
+/* Krank / Ferien: farbiger Streifen links und farbiger Titel */
+.eintrag-krank { box-shadow: inset 4px 0 0 var(--warn); }
+.eintrag-krank .eintrag-zeit { color: var(--warn); }
+.eintrag-ferien { box-shadow: inset 4px 0 0 var(--ok); }
+.eintrag-ferien .eintrag-zeit { color: var(--ok); }
 .eintrag-nacht {
   display: flex; align-items: center; gap: 6px; margin-top: 6px;
   color: var(--nacht); font-weight: 600; font-size: 0.92rem;
@@ -247,6 +252,20 @@ h1, h2 { margin: 0; }
 .btn-gefahr-leise { background: transparent; color: var(--gefahr); }
 
 /* ---------- Auswahl-Chips ---------- */
+/* Arbeit · Krank · Ferien: drei gleich breite Felder nebeneinander */
+.art-wahl {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px;
+  border-radius: 14px; background: var(--bg); border: 1px solid var(--linie);
+}
+.art-knopf {
+  min-height: 48px; border: 0; border-radius: 11px; background: transparent;
+  font-weight: 650; color: var(--text-2);
+}
+.art-knopf[aria-pressed="true"] { background: var(--karte); color: var(--text); box-shadow: 0 1px 4px rgb(0 0 0 / 0.12); }
+.art-arbeit[aria-pressed="true"] { color: var(--akzent); }
+.art-krank[aria-pressed="true"] { color: var(--warn); }
+.art-ferien[aria-pressed="true"] { color: var(--ok); }
+
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -285,6 +304,7 @@ h1, h2 { margin: 0; }
 }
 .ergebnis:empty { display: none; }
 .ergebnis-haupt { font-size: 1.2rem; font-weight: 750; color: var(--akzent); }
+.ergebnis-info { margin-top: 2px; color: var(--text-2); font-size: 0.9rem; }
 .ergebnis-nacht { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--nacht); font-weight: 600; }
 .ergebnis-nacht svg { width: 16px; height: 16px; }
 

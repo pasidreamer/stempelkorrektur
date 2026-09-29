@@ -5,7 +5,8 @@
 // Alles Nötige wird unten unter dem Namen «Blatt» bereitgestellt.
 
 (() => {
-const { berechne, dauer, kurzDatum, kalenderwoche, plusTage, tageDerWoche, wochentagIndex, WOCHENTAGE } = Zeit;
+const { berechneEintrag, istAbwesenheit, ABWESENHEITEN, dauer, kurzDatum, kalenderwoche, plusTage, tageDerWoche, wochentagIndex, WOCHENTAGE } =
+  Zeit;
 
 // Farben als [rot, grün, blau] von 0 bis 1
 const TEXT = [0.08, 0.13, 0.17];
@@ -81,6 +82,7 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen }) {
   let summeNetto = 0;
   let summeZuschlag = 0;
   let mitMitternacht = false;
+  let mitAbwesenheit = false;
 
   for (const datum of tageDerWoche(montag)) {
     const i = wochentagIndex(datum);
@@ -102,8 +104,22 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen }) {
         seite.text(SP.tag, grund, WOCHENTAGE[i], { groesse: 9.5, fett: true, farbe: TEXT });
         seite.text(SP.datum, grund, kurzDatum(datum), { groesse: 9.5, farbe: TEXT });
       }
-      if (e) {
-        const r = berechne(e, nacht);
+      if (e && istAbwesenheit(e)) {
+        // Krank/Ferien: keine Zeiten, sondern ein ganzer Tag
+        const r = berechneEintrag(e, nacht);
+        summeNetto += r.netto;
+        mitAbwesenheit = true;
+        const z = { groesse: 9.5, farbe: TEXT };
+        seite.text(SP.von, grund, '–', z);
+        seite.text(SP.bis, grund, '–', z);
+        seite.text(SP.pause, grund, '–', z);
+        seite.text(SP.grund, grund, `${ABWESENHEITEN[e.art]} (ganzer Tag)`, { ...z, fett: true });
+        seite.text(SP.stunden, grund, dauer(r.netto), { ...z, fett: true, ausrichtung: 'rechts' });
+        if (e.bemerkung) {
+          seite.text(SP.grund, y + 26, PDF.kuerzen(e.bemerkung, SP.nacht - SP.grund, 8), { groesse: 8, farbe: GRAU });
+        }
+      } else if (e) {
+        const r = berechneEintrag(e, nacht);
         summeNetto += r.netto;
         summeZuschlag += r.zuschlag;
         if (r.ueberMitternacht) mitMitternacht = true;
@@ -141,6 +157,7 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen }) {
   const hinweise = [];
   if (summeZuschlag) hinweise.push(`Nachtarbeit ${nacht.von}–${nacht.bis} Uhr mit ${nacht.prozent} % Zeitzuschlag. Pausen werden anteilig abgezogen.`);
   if (mitMitternacht) hinweise.push('«+1» bei Bis: Die Arbeit endete am Folgetag.');
+  if (mitAbwesenheit) hinweise.push(`Krank/Ferien zählen als ganzer Tag (Wochensoll ${einstellungen.wochensoll} h ÷ 5).`);
   for (const h of hinweise) {
     seite.text(RAND, y, h, { groesse: 8, farbe: GRAU });
     y += 12;

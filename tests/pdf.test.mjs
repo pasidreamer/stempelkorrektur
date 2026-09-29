@@ -7,7 +7,7 @@ import '../js/zeit.js';
 import '../js/pdf.js';
 import '../js/blatt.js';
 
-const einstellungen = { absender: 'Lena Kläui', nacht: { von: '22:00', bis: '05:00', prozent: 25 } };
+const einstellungen = { absender: 'Lena Kläui', wochensoll: 43, nacht: { von: '22:00', bis: '05:00', prozent: 25 } };
 const personen = [
   { id: 'p1', name: 'Lena Kläui', vorgesetzter: 'Beat Chef' },
   { id: 'p2', name: 'Jürg Müller', vorgesetzter: 'Lena Kläui' },
@@ -88,4 +88,20 @@ test('Sehr volle Woche: Tabelle und Unterschriften laufen auf Folgeseiten weiter
   // jede Textposition liegt innerhalb der Seite (zwischen Fuss und Kopf)
   for (const m of text.matchAll(/1 0 0 1 [\d.]+ ([\d.]+) Tm/g)) assert.ok(Number(m[1]) > 20 && Number(m[1]) < 800, `y=${m[1]}`);
   writeFileSync('tests/ausgabe/volle-woche.pdf', bytes);
+});
+
+test('Krank und Ferien im PDF: ganzer Tag ohne Zeiten, zählt im Total', () => {
+  const mitAbwesenheit = [
+    eintraege[0], // Mo Arbeit 9:00 h
+    { id: 'k', personId: 'p1', datum: '2026-09-23', art: 'krank', minuten: 516, von: '', bis: '', pause: 0, grund: 'Krank', bemerkung: '' },
+    { id: 'f', personId: 'p1', datum: '2026-09-24', art: 'ferien', minuten: 516, von: '', bis: '', pause: 0, grund: 'Ferien', bemerkung: '' },
+  ];
+  const bytes = Blatt.erstellen({ montag: '2026-09-21', personen: [personen[0]], eintraege: mitAbwesenheit, einstellungen });
+  const text = Buffer.from(bytes).toString('latin1');
+  assert.ok(text.includes(String.raw`(Krank \(ganzer Tag\))`), 'Krank-Zeile');
+  assert.ok(text.includes(String.raw`(Ferien \(ganzer Tag\))`), 'Ferien-Zeile');
+  assert.equal(text.split('(8:36 h)').length - 1, 2, 'je 8:36 h');
+  assert.ok(text.includes('(26:12 h)'), 'Total 9:00 + 2 × 8:36 = 26:12 h');
+  assert.ok(text.includes(String.raw`(Krank/Ferien z\344hlen als ganzer Tag \(Wochensoll 43 h \367 5\).)`), 'Erklärung unten');
+  writeFileSync('tests/ausgabe/krank-ferien.pdf', bytes);
 });

@@ -87,10 +87,17 @@
 
       <div class="blatt-inhalt">
         <div class="feld">
+          <span class="feld-label" id="e-art-label">Was war an diesem Tag?</span>
+          <div id="e-art" class="art-wahl" role="group" aria-labelledby="e-art-label"></div>
+        </div>
+
+        <div class="feld">
           <span class="feld-label" id="e-personen-label">Gilt für</span>
           <div id="e-personen" class="chips" role="group" aria-labelledby="e-personen-label"></div>
         </div>
 
+        <!-- Nur bei «Arbeit»: bei Krank/Ferien zählt der ganze Tag, ohne Zeiten -->
+        <div id="e-arbeit">
         <div class="zeit-zeile">
           <label class="feld">
             <span class="feld-label">Von</span>
@@ -119,6 +126,7 @@
             <span class="visually-hidden">Anderer Grund</span>
             <input type="text" id="e-grund-anderes" class="eingabe" placeholder="Grund eingeben" autocomplete="off">
           </label>
+        </div>
         </div>
 
         <label class="feld">

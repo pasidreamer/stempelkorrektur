@@ -136,6 +136,31 @@ function stundenText({ netto, zuschlag }) {
   return zuschlag > 0 ? `${dauer(netto)} (+${dauer(zuschlag)} Nachtzuschlag)` : dauer(netto);
 }
 
+// ---------- Krank und Ferien ----------
+
+// Ein Eintrag hat die «art» arbeit (Standard), krank oder ferien.
+// Krank und Ferien zählen als ganzer Tag: Wochensoll ÷ 5 (bei 43 h: 8:36 h).
+const ABWESENHEITEN = { krank: 'Krank', ferien: 'Ferien' };
+
+function istAbwesenheit(eintrag) {
+  return eintrag.art === 'krank' || eintrag.art === 'ferien';
+}
+
+// Minuten eines ganzen Tages aus dem Wochensoll in Stunden (43 → 516 = 8:36 h)
+function tagessoll(wochensollStunden) {
+  return Math.round((wochensollStunden * 60) / 5);
+}
+
+// Wie berechne(), kennt aber auch Krank/Ferien. Deren Minuten stehen im Eintrag selbst,
+// damit eine spätere Änderung des Wochensolls alte Wochen nicht verändert.
+function berechneEintrag(eintrag, nacht) {
+  if (istAbwesenheit(eintrag)) {
+    const m = eintrag.minuten || 0;
+    return { brutto: m, netto: m, nacht: 0, zuschlag: 0, ueberMitternacht: false, abwesend: true };
+  }
+  return berechne(eintrag, nacht);
+}
+
 globalThis.Zeit = {
   WOCHENTAGE,
   WOCHENTAGE_KURZ,
@@ -155,5 +180,9 @@ globalThis.Zeit = {
   berechne,
   pruefe,
   stundenText,
+  ABWESENHEITEN,
+  istAbwesenheit,
+  tagessoll,
+  berechneEintrag,
 };
 })();

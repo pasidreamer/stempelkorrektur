@@ -160,7 +160,8 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
 
   // 5b. PDF per Mail senden – PC-Weg: PDF speichern, dann Mail öffnen
   await klick('#s-pdf-senden');
-  await sleep(1000);
+  for (let i = 0; i < 50 && (await evaluate('window.__links.length')) < 2; i++) await sleep(100);
+  await sleep(200); // Senden-Blatt schliesst sich direkt nach dem Öffnen der Mail
   const links = await evaluate('window.__links');
   pruefe(links[0]?.href.startsWith('blob:') && links[0].download.startsWith(pdfName), `PC: PDF wird gespeichert (${links[0]?.download})`);
   const mail = links[1]?.href ?? '';
@@ -232,12 +233,59 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   await sleep(300);
   pruefe((await text('#s-hinweis'))?.includes('Samsung-Browser kann PDFs nicht teilen'), 'Samsung-Browser: Hinweis erklärt den anderen Weg');
   await klick('#s-pdf-senden');
-  await sleep(1000);
+  // Die Mail öffnet sich absichtlich kurz nach dem Speichern: warten, bis beide Links da sind (max. 5 s)
+  for (let i = 0; i < 50 && (await evaluate('window.__links.length')) < 2; i++) await sleep(100);
   const samsung = await evaluate('({ links: window.__links, geteilt: window.__geteilt })');
   pruefe(samsung.geteilt.length === 0, 'Samsung-Browser: Teilen wird gar nicht erst versucht');
   pruefe(samsung.links[0]?.href.startsWith('blob:') && samsung.links[0].download.endsWith('.pdf'), `Samsung-Browser: PDF wird gespeichert (${samsung.links[0]?.download})`);
-  pruefe(samsung.links[1]?.href.startsWith('mailto:buero@example.ch?'), 'Samsung-Browser: danach öffnet sich die Mail mit Empfänger');
+  pruefe(samsung.links[1]?.href.startsWith('mailto:buero@example.ch?'), `Samsung-Browser: danach öffnet sich die Mail mit Empfänger (${samsung.links[1]?.href.slice(0, 40) ?? 'kein zweiter Link'})`);
   await shot(`${ordner}/06d-samsung.png`);
+  await klick('#dlg-senden [data-schliessen]');
+
+  // 6e. Krank und Ferien: ganzer Tag ohne Zeiten, zählt im Wochenstand, steht in Mail und PDF
+  const minutenAus = (s) => {
+    const m = s.match(/(\d+):(\d+) h/);
+    return Number(m[1]) * 60 + Number(m[2]);
+  };
+  const standVorher = minutenAus(await text('.stand-kopf strong'));
+  await evaluate(`document.querySelector('.tag-leer[data-neu]').click()`);
+  await sleep(300);
+  pruefe((await evaluate(`document.querySelector('[data-art="arbeit"]').getAttribute('aria-pressed')`)) === 'true', 'Neuer Eintrag: «Arbeit» ist vorgewählt');
+  await evaluate(`document.querySelector('[data-art="krank"]').click()`);
+  pruefe(await evaluate(`document.getElementById('e-arbeit').offsetParent === null`), 'Krank: Von, Bis, Pause und Grund sind ausgeblendet');
+  pruefe((await text('.ergebnis-haupt')) === '= 8:36 h (ganzer Tag)', `Krank: ganzer Tag = 8:36 h (${await text('.ergebnis-haupt')})`);
+  await shot(`${ordner}/06e-krank.png`);
+  await klick('#form-eintrag button[type=submit]');
+  await sleep(300);
+  const krankKarte = await evaluate(`document.querySelector('.eintrag-krank')?.textContent.replace(/\\s+/g, ' ').trim() ?? ''`);
+  pruefe(krankKarte.startsWith('Krank') && krankKarte.includes('ganzer Tag'), `Tageskarte zeigt «Krank · ganzer Tag» (${krankKarte})`);
+  const standNachher = minutenAus(await text('.stand-kopf strong'));
+  pruefe(standNachher - standVorher === 516, `Wochenstand steigt um 8:36 h (${standVorher} → ${standNachher} min)`);
+
+  await evaluate(`document.querySelector('.tag-leer[data-neu]').click()`);
+  await sleep(300);
+  await evaluate(`document.querySelector('[data-art="ferien"]').click()`);
+  await klick('#form-eintrag button[type=submit]');
+  await sleep(300);
+  pruefe(await evaluate(`!!document.querySelector('.eintrag-ferien')`), 'Ferien-Tag wird angezeigt');
+  await shot(`${ordner}/06f-woche-krank-ferien.png`);
+
+  await evaluate(`document.querySelector('.eintrag-krank').click()`);
+  await sleep(300);
+  pruefe((await evaluate(`document.querySelector('[data-art="krank"]').getAttribute('aria-pressed')`)) === 'true', 'Bearbeiten: Krank ist wieder ausgewählt');
+  await klick('#dlg-eintrag [data-schliessen]');
+
+  await klick('#btn-senden');
+  await sleep(500);
+  const textMail = decodeURIComponent(await evaluate(`document.getElementById('s-mailto').href`));
+  pruefe(textMail.includes('Krank (ganzer Tag)') && textMail.includes('Ferien (ganzer Tag)'), 'Text-Mail: Krank und Ferien als ganzer Tag');
+  await evaluate(`window.__fenster = []; window.open = (u) => { window.__fenster.push(u); return {}; };`);
+  await klick('#s-ansehen');
+  const pdfKrank64 = await evaluate(`(async () => { const b = new Uint8Array(await (await fetch(window.__fenster[0])).arrayBuffer());
+    let s = ''; for (const x of b) s += String.fromCharCode(x); return btoa(s); })()`);
+  const pdfKrank = Buffer.from(pdfKrank64, 'base64').toString('latin1');
+  pruefe(pdfKrank.includes(String.raw`(Krank \(ganzer Tag\))`) && pdfKrank.includes(String.raw`(Ferien \(ganzer Tag\))`), 'PDF: Krank und Ferien als ganzer Tag');
+  await klick('#dlg-senden [data-schliessen]');
 
   // 7. Woche wechseln
   await klick('#woche-vor');
