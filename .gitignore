@@ -1,0 +1,4 @@
+# Erzeugte Dateien der Tests
+tests/ausgabe/
+shots/
+node_modules/

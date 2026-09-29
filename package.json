@@ -1,0 +1,8 @@
+{
+  "name": "stempelkorrektur",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

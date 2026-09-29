@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Stempelkorrektur</title>
+  <meta name="description" content="Stempelkorrekturen pro Woche und Person erfassen und mit einem Tipp ans Büro mailen.">
+  <meta name="theme-color" content="#0b6e76" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1417" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Stempel">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Normale Skripte statt Module: so läuft die App auch per Doppelklick auf diese Datei -->
+  <script defer src="js/zeit.js"></script>
+  <script defer src="js/speicher.js"></script>
+  <script defer src="js/mail.js"></script>
+  <script defer src="js/pdf.js"></script>
+  <script defer src="js/blatt.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <!-- Symbole: einmal definiert, überall mit <use href="#i-…"> eingesetzt -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-links" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-rechts" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-zahnrad" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></g></symbol>
+      <symbol id="i-mond" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"/></symbol>
+      <symbol id="i-dokument" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></g></symbol>
+      <symbol id="i-haken" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-muell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></g></symbol>
+    </defs>
+  </svg>
+
+  <header class="kopf">
+    <div class="kopf-zeile">
+      <h1 class="app-name">Stempelkorrektur</h1>
+      <button id="btn-einstellungen" class="icon-btn" type="button" aria-label="Einstellungen">
+        <svg><use href="#i-zahnrad"/></svg>
+      </button>
+    </div>
+
+    <nav class="woche" aria-label="Woche wählen">
+      <button id="woche-zurueck" class="icon-btn icon-btn-rand" type="button" aria-label="Vorherige Woche">
+        <svg><use href="#i-links"/></svg>
+      </button>
+      <div class="woche-mitte" aria-live="polite">
+        <div id="woche-titel" class="woche-titel"></div>
+        <div id="woche-daten" class="woche-daten"></div>
+      </div>
+      <button id="woche-vor" class="icon-btn icon-btn-rand" type="button" aria-label="Nächste Woche">
+        <svg><use href="#i-rechts"/></svg>
+      </button>
+    </nav>
+
+    <div id="personen" class="personen" role="tablist" aria-label="Person"></div>
+  </header>
+
+  <main id="inhalt" class="inhalt">
+    <div id="status" class="status"></div>
+    <div id="tage" class="tage"></div>
+  </main>
+
+  <footer class="fuss">
+    <button id="btn-senden" class="btn btn-primaer btn-gross" type="button">
+      <svg><use href="#i-mail"/></svg>
+      <span id="btn-senden-text">Woche senden</span>
+    </button>
+  </footer>
+
+  <!-- Eintrag erfassen / ändern -->
+  <dialog id="dlg-eintrag" class="blatt" aria-labelledby="e-titel">
+    <form id="form-eintrag" class="blatt-form" novalidate>
+      <div class="blatt-kopf">
+        <h2 id="e-titel">Eintrag</h2>
+        <button type="button" class="icon-btn" data-schliessen aria-label="Schliessen"><svg><use href="#i-x"/></svg></button>
+      </div>
+
+      <div class="blatt-inhalt">
+        <div class="feld">
+          <span class="feld-label" id="e-personen-label">Gilt für</span>
+          <div id="e-personen" class="chips" role="group" aria-labelledby="e-personen-label"></div>
+        </div>
+
+        <div class="zeit-zeile">
+          <label class="feld">
+            <span class="feld-label">Von</span>
+            <input type="time" id="e-von" class="eingabe eingabe-zeit" required>
+          </label>
+          <label class="feld">
+            <span class="feld-label">Bis</span>
+            <input type="time" id="e-bis" class="eingabe eingabe-zeit" required>
+          </label>
+        </div>
+        <p id="e-mitternacht" class="hinweis hinweis-nacht" hidden></p>
+
+        <div class="feld">
+          <span class="feld-label" id="e-pause-label">Pause</span>
+          <div id="e-pause" class="chips" role="group" aria-labelledby="e-pause-label"></div>
+          <label class="unterfeld" id="e-pause-andere-feld" hidden>
+            <span class="visually-hidden">Pause in Minuten</span>
+            <input type="number" id="e-pause-andere" class="eingabe" inputmode="numeric" min="0" step="5" placeholder="Minuten">
+          </label>
+        </div>
+
+        <div class="feld">
+          <span class="feld-label" id="e-grund-label">Grund</span>
+          <div id="e-grund" class="chips" role="group" aria-labelledby="e-grund-label"></div>
+          <label class="unterfeld" id="e-grund-anderes-feld" hidden>
+            <span class="visually-hidden">Anderer Grund</span>
+            <input type="text" id="e-grund-anderes" class="eingabe" placeholder="Grund eingeben" autocomplete="off">
+          </label>
+        </div>
+
+        <label class="feld">
+          <span class="feld-label">Bemerkung <span class="leise">(freiwillig)</span></span>
+          <input type="text" id="e-bemerkung" class="eingabe" placeholder="z. B. Baustelle oder Auftrag" autocomplete="off">
+        </label>
+      </div>
+
+      <!-- Ergebnis und Knöpfe bleiben unten immer sichtbar -->
+      <div class="blatt-aktionen blatt-aktionen-stapel">
+        <div id="e-ergebnis" class="ergebnis" aria-live="polite"></div>
+        <p id="e-fehler" class="fehler" role="alert"></p>
+        <div class="knopf-reihe">
+          <button type="button" id="e-loeschen" class="btn btn-gefahr" hidden>
+            <svg><use href="#i-muell"/></svg> Löschen
+          </button>
+          <button type="submit" class="btn btn-primaer btn-breit">Speichern</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Senden -->
+  <dialog id="dlg-senden" class="blatt" aria-labelledby="s-titel">
+    <div class="blatt-form">
+      <div class="blatt-kopf">
+        <h2 id="s-titel">Woche senden</h2>
+        <button type="button" class="icon-btn" data-schliessen aria-label="Schliessen"><svg><use href="#i-x"/></svg></button>
+      </div>
+
+      <div class="blatt-inhalt">
+        <div class="feld">
+          <span class="feld-label">An</span>
+          <div id="s-an" class="an-zeile"></div>
+        </div>
+
+        <div class="feld">
+          <span class="feld-label" id="s-personen-label">Wer kommt ins PDF?</span>
+          <div id="s-personen" class="chips" role="group" aria-labelledby="s-personen-label"></div>
+        </div>
+
+        <div class="feld">
+          <span class="feld-label">Inhalt <span class="leise">(eine Seite pro Person)</span></span>
+          <ul id="s-uebersicht" class="uebersicht"></ul>
+          <button type="button" id="s-ansehen" class="btn btn-leise">
+            <svg><use href="#i-dokument"/></svg> PDF ansehen
+          </button>
+        </div>
+
+        <details class="textmail">
+          <summary>Lieber ohne PDF, nur als Text-Mail</summary>
+          <div class="vorschau">
+            <div id="s-betreff" class="vorschau-betreff"></div>
+            <pre id="s-text" class="vorschau-text"></pre>
+          </div>
+          <a id="s-mailto" class="btn btn-leise" href="#">
+            <svg><use href="#i-mail"/></svg> Text-Mail öffnen
+          </a>
+        </details>
+      </div>
+
+      <div class="blatt-aktionen blatt-aktionen-stapel">
+        <button type="button" id="s-pdf-senden" class="btn btn-primaer btn-gross">
+          <svg><use href="#i-mail"/></svg> PDF per Mail senden
+        </button>
+        <p id="s-hinweis" class="hinweis mitte"></p>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Einstellungen -->
+  <dialog id="dlg-einstellungen" class="blatt blatt-hoch" aria-labelledby="st-titel">
+    <form id="form-einstellungen" class="blatt-form" novalidate>
+      <div class="blatt-kopf">
+        <h2 id="st-titel">Einstellungen</h2>
+        <button type="button" class="icon-btn" data-schliessen aria-label="Schliessen"><svg><use href="#i-x"/></svg></button>
+      </div>
+
+      <div class="blatt-inhalt">
+        <p id="st-willkommen" class="willkommen" hidden>
+          Willkommen! Einmal kurz einrichten – danach trägst du nur noch Zeiten ein.
+        </p>
+
+        <fieldset class="gruppe">
+          <legend>Personen</legend>
+          <p class="hinweis">Du zuerst, dann deine Mitarbeitenden. Für jede Person gibt es ein eigenes Blatt.</p>
+          <div id="st-personen" class="liste"></div>
+          <button type="button" id="st-person-plus" class="btn btn-leise"><svg><use href="#i-plus"/></svg> Person hinzufügen</button>
+        </fieldset>
+
+        <fieldset class="gruppe">
+          <legend>Mail ans Büro</legend>
+          <label class="feld">
+            <span class="feld-label">Empfänger</span>
+            <input type="email" id="st-empfaenger" class="eingabe" inputmode="email" autocomplete="email" placeholder="buero@firma.ch">
+          </label>
+          <label class="feld">
+            <span class="feld-label">Kopie an <span class="leise">(freiwillig)</span></span>
+            <input type="text" id="st-cc" class="eingabe" inputmode="email" autocomplete="off" placeholder="z. B. deine eigene Adresse">
+          </label>
+          <label class="feld">
+            <span class="feld-label">Anrede in der Mail</span>
+            <input type="text" id="st-anrede" class="eingabe" placeholder="Hallo Sandra" autocomplete="off">
+          </label>
+          <label class="feld">
+            <span class="feld-label">Dein Name unter der Mail</span>
+            <input type="text" id="st-absender" class="eingabe" autocomplete="name" placeholder="Vorname Nachname">
+          </label>
+        </fieldset>
+
+        <fieldset class="gruppe">
+          <legend>Gründe zum Antippen</legend>
+          <div id="st-gruende" class="liste"></div>
+          <button type="button" id="st-grund-plus" class="btn btn-leise"><svg><use href="#i-plus"/></svg> Grund hinzufügen</button>
+        </fieldset>
+
+        <fieldset class="gruppe">
+          <legend>Nachtarbeit</legend>
+          <div class="zeit-zeile">
+            <label class="feld">
+              <span class="feld-label">Nacht ab</span>
+              <input type="time" id="st-nacht-von" class="eingabe eingabe-zeit">
+            </label>
+            <label class="feld">
+              <span class="feld-label">Nacht bis</span>
+              <input type="time" id="st-nacht-bis" class="eingabe eingabe-zeit">
+            </label>
+          </div>
+          <label class="feld">
+            <span class="feld-label">Zuschlag in Prozent</span>
+            <input type="number" id="st-nacht-prozent" class="eingabe" inputmode="numeric" min="0" max="100">
+          </label>
+          <p class="hinweis">Beispiel mit 25 %: 1 Stunde in der Nacht zählt als 1:15 h. Die Pause wird anteilig von Tag- und Nachtzeit abgezogen.</p>
+        </fieldset>
+
+        <fieldset class="gruppe">
+          <legend>Daten</legend>
+          <p class="hinweis">Alles bleibt nur auf diesem Handy gespeichert. Einträge älter als ein Jahr werden automatisch entfernt.</p>
+          <button type="button" id="st-alles-loeschen" class="btn btn-gefahr-leise"><svg><use href="#i-muell"/></svg> Alle Einträge löschen</button>
+        </fieldset>
+
+        <p id="st-fehler" class="fehler" role="alert"></p>
+      </div>
+
+      <div class="blatt-aktionen">
+        <button type="submit" class="btn btn-primaer btn-breit">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
