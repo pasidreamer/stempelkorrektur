@@ -48,6 +48,17 @@ Auch das PDF entsteht direkt auf dem Gerät. Die Daten verlassen es erst mit der
 Einstellungen und Einträge weg. Dann einfach neu einrichten, gesendete Wochen liegen ja im
 Postausgang.
 
+## Online-Adresse
+
+**https://pasidreamer.github.io/stempelkorrektur/** (seit 29.09.2026, GitHub Pages, gratis)
+
+- Der Quellcode liegt öffentlich unter https://github.com/pasidreamer/stempelkorrektur. Darin stehen
+  keine persönlichen Daten: Namen, Adressen und Zeiten liegen nur auf dem jeweiligen Handy.
+  Suchmaschinen sollen die App nicht aufnehmen (`noindex` in `index.html`).
+- **Neue Fassung veröffentlichen:** In `sw.js` die `VERSION` hochzählen, dann committen und
+  `git push`. GitHub stellt die neue Fassung nach 1–2 Minuten bereit. Die Handys holen sie beim
+  nächsten Öffnen mit Empfang.
+
 ## Aufs Handy bringen (iPhone)
 
 1. Die Adresse der App in **Safari** öffnen.
