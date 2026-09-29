@@ -79,17 +79,21 @@ Postausgang.
 
 ## Aufs Handy bringen (Android, z. B. Samsung)
 
-- **Chrome:** Adresse öffnen → Menü ⋮ oben rechts → «App installieren» (oder «Zum Startbildschirm
-  hinzufügen»).
-- **Samsung Internet:** Adresse öffnen → Menü ≡ unten rechts → «Seite hinzufügen zu» →
-  «Startbildschirm». Oft erscheint auch direkt ein Installieren-Symbol in der Adressleiste.
+**Über Chrome installieren, nicht über den Samsung-Browser.** Adresse in **Chrome** öffnen, dann
+Menü ⋮ oben rechts → «App installieren» (oder «Zum Startbildschirm hinzufügen»).
+
+Warum nicht «Samsung Internet»: Der Samsung-eigene Browser verweigert das Teilen von PDFs
+(«NotAllowedError: Permission denied», am 29.09.2026 auf Pascals Samsung aufgetreten; bekannte
+Eigenheit, Bilder und Videos teilt er). Chrome teilt PDFs. Läuft die App trotzdem im
+Samsung-Browser, erkennt sie das (`SamsungBrowser` in der Kennung) und nimmt den Ersatzweg: PDF
+speichern und die Mail mit Empfänger öffnen, das PDF dann über «Anhängen» aus «Downloads» wählen.
+
+Wichtig beim Wechsel: Jeder Browser hat seinen eigenen Speicher. In der Chrome-Version muss man
+die App neu einrichten, Einträge aus der Samsung-Browser-Version kommen nicht mit.
 
 Die App erscheint danach mit eigenem Symbol bei den Apps. Am 29.09. geprüft: Android meldet die App
-als installierbar (keine Fehler im Manifest). Den PDF-Versand habe ich mit einem vorgetäuschten
-Samsung-Handy geprüft: PDF über «Teilen». Auf dem echten Samsung meldete der User am 29.09. abends,
-dass nur die Adresse kopiert wurde und keine Auswahl kam. Das Kopieren ist darum entfernt (v7); ob
-die Auswahl jetzt kommt, ist auf dem echten Samsung noch zu bestätigen. «PDF ansehen» lädt das PDF
-auf Android meist herunter, statt es anzuzeigen.
+als installierbar (keine Fehler im Manifest). «PDF ansehen» lädt das PDF auf Android meist herunter,
+statt es anzuzeigen. Das Teilen mit Chrome auf dem echten Samsung ist noch zu bestätigen.
 
 ## Dateien
 
@@ -144,7 +148,7 @@ die Handys die neue Fassung sicher übernehmen.
 `index.html` nur als Vorschau an, ohne dass die App läuft. Dafür braucht es eine Webadresse
 (Hosting).
 
-## Verifikationsstand (29.09.2026, spätabends: Teilen ohne Zwischenablage)
+## Verifikationsstand (29.09.2026, spätabends: Samsung-Browser-Ersatzweg)
 
 Geprüft:
 - `npm test`: 21/21 grün. Davon 13 Rechentests (normaler Tag, 23–04 Uhr = 5:00 h +1:15 h, Abend
@@ -154,7 +158,7 @@ Geprüft:
   Klammern richtig kodiert, Kürzen mit «…», Dateiname), Vorgesetzte/r pro Person und
   Unterschriftsfelder auf jedem Blatt, übervolle Woche (Tabelle und Unterschriften laufen auf eine
   Folgeseite, nichts ragt über den Rand) und 2 Speichertests (alte Daten werden ergänzt).
-- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 47/47 grün.
+- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 51/51 grün.
   Geprüft werden Einrichtung (inkl. Vorgesetzte/r vorbelegt), Team-Eintrag für 4 Personen, Nachteintrag, Fehlermeldung,
   Wochenstand (15:15 h / 43:00 h, «noch 27:45 h», Soll per Einstellung mit Komma geändert → grün
   «Soll genau erreicht»), kein seitliches Scrollen, Senden-Blatt (Übersicht, Hinweis), Text-Mail-Link,
@@ -162,9 +166,10 @@ Geprüft:
   mailto mit Empfänger, Betreff, Begleittext), Status, Warnung nach Änderung, Handy-Weg (iPhone
   vorgetäuscht: PDF wird mit Betreff und Text an «Teilen» übergeben, nur geänderte Person
   vorausgewählt, nichts wird in die Zwischenablage kopiert; scheitert das Teilen, wird das PDF
-  gespeichert und der Grund angezeigt), Wochenwechsel, dunkles Design, Service Worker, Start **offline**, keine
+  gespeichert und der Grund angezeigt; Samsung-Browser vorgetäuscht: kein Teilen-Versuch, PDF
+  gespeichert, Mail mit Empfänger), Wochenwechsel, dunkles Design, Service Worker, Start **offline**, keine
   Konsolenfehler.
-- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 44/44 grün (ohne die 3
+- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 48/48 grün (ohne die 3
   Offline-Prüfungen).
 - Das von der App erzeugte PDF im PDF-Programm von Edge angesehen: 4 Seiten, Umlaute, Spalten
   und Totale korrekt.
@@ -172,7 +177,8 @@ Geprüft:
 Noch nicht geprüft (braucht ein echtes Handy):
 - Vom User am 29.09. auf dem iPhone bestätigt: «PDF per Mail senden» hängt das PDF an. Der Empfänger
   kommt dabei nicht mit, das lässt «Teilen» nicht zu.
-- Samsung: Fassung v7 (ohne Zwischenablage) noch nicht auf dem echten Gerät bestätigt.
+- Samsung: Mit dem Samsung-Browser kam «Permission denied» (PDF-Teilen gesperrt). Mit Chrome und
+  mit dem Ersatzweg (v8) auf dem echten Gerät noch zu bestätigen.
 - «PDF ansehen» auf dem iPhone, besonders wenn die App vom Home-Bildschirm gestartet ist.
 - Zeitauswahl, Tastatur und «Zum Home-Bildschirm» auf dem echten Gerät.
 - Am Firmen-PC: ob Outlook beim Mail-Link aufgeht (hängt davon ab, welches Mailprogramm in Windows

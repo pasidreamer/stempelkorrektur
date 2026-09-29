@@ -455,7 +455,9 @@ function zeichneSenden() {
 
   $('#s-hinweis').textContent = kannPdfTeilen(new File([''], 'probe.pdf', { type: 'application/pdf' }))
     ? 'Im nächsten Schritt dein Mailprogramm wählen (z. B. Outlook). Das PDF ist schon angehängt, den Empfänger trägst du selbst ein.'
-    : 'Das PDF wird im Download-Ordner gespeichert und die Mail öffnet sich. Dann das PDF in die Mail ziehen und senden.';
+    : IST_SAMSUNG_BROWSER
+      ? 'Der Samsung-Browser kann PDFs nicht teilen. Darum wird das PDF gespeichert und die Mail öffnet sich – dort über «Anhängen» das PDF aus «Downloads» wählen. Tipp: Über Chrome installiert, hängt die App das PDF direkt an.'
+      : 'Das PDF wird im Download-Ordner gespeichert und die Mail öffnet sich. Dann das PDF in die Mail ziehen und senden.';
   $('#s-hinweis').classList.remove('fehler');
 
   // Text-Mail ohne PDF (wie bisher)
@@ -493,9 +495,14 @@ function sendenAbschliessen(meldung) {
 const IST_HANDY =
   /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
 
+// Der Samsung-eigene Browser («Samsung Internet») meldet zwar, er könne Dateien teilen, verweigert
+// PDFs dann aber mit «NotAllowedError: Permission denied» (bekannt, am 29.09.2026 auf Pascals
+// Samsung gesehen). Dort darum gleich den Weg «PDF speichern + Mail öffnen» nehmen. Chrome kann es.
+const IST_SAMSUNG_BROWSER = /SamsungBrowser/i.test(navigator.userAgent);
+
 function kannPdfTeilen(datei) {
   try {
-    return IST_HANDY && Boolean(navigator.canShare?.({ files: [datei] }));
+    return IST_HANDY && !IST_SAMSUNG_BROWSER && Boolean(navigator.canShare?.({ files: [datei] }));
   } catch {
     return false;
   }
@@ -555,7 +562,11 @@ async function pdfSenden() {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
   setTimeout(() => {
     oeffneLink(mailtoLink({ an: e.empfaenger, cc: e.cc, betreff: titel, text }));
-    sendenAbschliessen(`${datei.name} gespeichert – in die Mail ziehen und senden`);
+    sendenAbschliessen(
+      IST_HANDY
+        ? 'PDF gespeichert – in der Mail über «Anhängen» aus «Downloads» wählen'
+        : `${datei.name} gespeichert – in die Mail ziehen und senden`,
+    );
   }, 600);
 }
 

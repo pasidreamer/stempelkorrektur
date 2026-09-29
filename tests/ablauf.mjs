@@ -217,6 +217,28 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   await shot(`${ordner}/06c-teilen-fehler.png`);
   await klick('#dlg-senden [data-schliessen]');
 
+  // 6d. Samsung-Browser: kann PDFs nicht teilen → gar nicht erst versuchen, sondern PDF speichern
+  //     und die Mail (mit Empfänger) öffnen
+  await send('Emulation.setUserAgentOverride', {
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/25.0 Chrome/121.0.0.0 Mobile Safari/537.36',
+  });
+  await send('Page.reload');
+  await sleep(2500);
+  await evaluate(`window.__links = []; window.__geteilt = [];
+    HTMLAnchorElement.prototype.click = function () { window.__links.push({ href: this.href, download: this.download }); };
+    navigator.canShare = () => true;
+    navigator.share = async () => { window.__geteilt.push('versucht'); };`);
+  await klick('#btn-senden');
+  await sleep(300);
+  pruefe((await text('#s-hinweis'))?.includes('Samsung-Browser kann PDFs nicht teilen'), 'Samsung-Browser: Hinweis erklärt den anderen Weg');
+  await klick('#s-pdf-senden');
+  await sleep(1000);
+  const samsung = await evaluate('({ links: window.__links, geteilt: window.__geteilt })');
+  pruefe(samsung.geteilt.length === 0, 'Samsung-Browser: Teilen wird gar nicht erst versucht');
+  pruefe(samsung.links[0]?.href.startsWith('blob:') && samsung.links[0].download.endsWith('.pdf'), `Samsung-Browser: PDF wird gespeichert (${samsung.links[0]?.download})`);
+  pruefe(samsung.links[1]?.href.startsWith('mailto:buero@example.ch?'), 'Samsung-Browser: danach öffnet sich die Mail mit Empfänger');
+  await shot(`${ordner}/06d-samsung.png`);
+
   // 7. Woche wechseln
   await klick('#woche-vor');
   pruefe((await text('#woche-titel'))?.startsWith(`KW ${kw + 1}`), `Vorwärts zur KW ${kw + 1} (${await text('#woche-titel')})`);
