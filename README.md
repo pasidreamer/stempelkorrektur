@@ -22,6 +22,11 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
   (z. B. 23:00–04:00).
 - **Nachtzuschlag:** Standard 22:00–05:00 mit 25 % Zuschlag, einstellbar. Die Pause wird anteilig
   von Tag- und Nachtzeit abgezogen. Anzeige: «5:00 h (+1:15 h Nachtzuschlag)».
+- **Wochenstand:** Oben über den Tagen zeigt eine Karte die eingetragenen Stunden gegenüber dem
+  Wochensoll (Standard 43 h, in den Einstellungen unter «Arbeitszeit» änderbar, gilt für alle
+  Personen), mit Balken und «noch … bis zum Soll». Ist das Soll erreicht, wird sie grün
+  («Soll genau erreicht» bzw. «+… über dem Soll»). Der Nachtzuschlag zählt mit, weil er
+  gutgeschrieben wird. Die Karte steht nur in der App, nicht im PDF.
 - **Senden:** Unten «KW … per Mail senden» → Personen wählen → «PDF per Mail senden».
   - **Das PDF** hat eine A4-Seite pro Person, aufgebaut wie das Papierformular: Kopf mit KW,
     Mitarbeiter/in und Vorgesetzte/r, alle 7 Tage mit Von, Bis, Pause, Grund, Stunden,
@@ -136,7 +141,7 @@ die Handys die neue Fassung sicher übernehmen.
 `index.html` nur als Vorschau an, ohne dass die App läuft. Dafür braucht es eine Webadresse
 (Hosting).
 
-## Verifikationsstand (29.09.2026, Nachmittag: Vorgesetzte/r und Unterschriften)
+## Verifikationsstand (29.09.2026, abends: Wochenstand dazu)
 
 Geprüft:
 - `npm test`: 21/21 grün. Davon 13 Rechentests (normaler Tag, 23–04 Uhr = 5:00 h +1:15 h, Abend
@@ -146,15 +151,16 @@ Geprüft:
   Klammern richtig kodiert, Kürzen mit «…», Dateiname), Vorgesetzte/r pro Person und
   Unterschriftsfelder auf jedem Blatt, übervolle Woche (Tabelle und Unterschriften laufen auf eine
   Folgeseite, nichts ragt über den Rand) und 2 Speichertests (alte Daten werden ergänzt).
-- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 42/42 grün.
+- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 45/45 grün.
   Geprüft werden Einrichtung (inkl. Vorgesetzte/r vorbelegt), Team-Eintrag für 4 Personen, Nachteintrag, Fehlermeldung,
-  Wochentotal, kein seitliches Scrollen, Senden-Blatt (Übersicht, Hinweis), Text-Mail-Link,
+  Wochenstand (15:15 h / 43:00 h, «noch 27:45 h», Soll per Einstellung mit Komma geändert → grün
+  «Soll genau erreicht»), kein seitliches Scrollen, Senden-Blatt (Übersicht, Hinweis), Text-Mail-Link,
   «PDF ansehen» (gültiges PDF mit 4 Seiten, Vorgesetzte/r und Unterschriften je Blatt), PC-Weg (PDF-Download mit richtigem Namen, danach
   mailto mit Empfänger, Betreff, Begleittext), Status, Warnung nach Änderung, Handy-Weg (iPhone
   vorgetäuscht: PDF wird mit Betreff und Text an «Teilen» übergeben, nur geänderte Person
   vorausgewählt, Büro-Adresse in der Zwischenablage), Wochenwechsel, dunkles Design, Service Worker, Start **offline**, keine
   Konsolenfehler.
-- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 39/39 grün (ohne die 3
+- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 42/42 grün (ohne die 3
   Offline-Prüfungen).
 - Das von der App erzeugte PDF im PDF-Programm von Edge angesehen: 4 Seiten, Umlaute, Spalten
   und Totale korrekt.

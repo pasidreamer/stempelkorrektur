@@ -17,6 +17,7 @@ const STANDARD_EINSTELLUNGEN = {
   personen: [], // [{ id, name, vorgesetzter }]
   gruende: ['Lüftec', 'ESL', 'Reparatur intern'],
   nacht: { von: '22:00', bis: '05:00', prozent: 25 },
+  wochensoll: 43, // Stunden pro Woche, nur für die Anzeige «Wochenstand» in der App
 };
 
 function leererZustand() {

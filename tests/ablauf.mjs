@@ -98,7 +98,32 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   await klick('#dlg-eintrag [data-schliessen]');
 
   await shot(`${ordner}/05-woche-lena.png`);
-  pruefe((await text('.wochen-total strong')) === '14:00 h (+1:15 h Nachtzuschlag)', `Wochentotal Lena (${await text('.wochen-total strong')})`);
+  // Wochenstand: 14:00 h gearbeitet + 1:15 h Nachtzuschlag = 15:15 h von 43:00 h
+  const stand = async () => [
+    (await text('.stand-kopf strong'))?.replace(/\s+/g, ' '),
+    await text('.stand-text'),
+    await evaluate(`document.querySelector('.stand').classList.contains('stand-erreicht')`),
+  ];
+  let [standZahl, standText, erreicht] = await stand();
+  pruefe(standZahl === '15:15 h / 43:00 h', `Wochenstand oben (${standZahl})`);
+  pruefe(standText === 'noch 27:45 h bis zum Soll · inkl. 1:15 h Nachtzuschlag' && !erreicht, `Wochenstand: was noch fehlt (${standText})`);
+
+  // Wochensoll in den Einstellungen ändern (mit Komma wie auf dem Handy): 15,25 h = genau erreicht
+  await klick('#btn-einstellungen');
+  await sleep(300);
+  pruefe((await evaluate(`document.getElementById('st-wochensoll').value`)) === '43', 'Einstellungen: Wochensoll ist mit 43 vorbelegt');
+  await evaluate(`document.getElementById('st-wochensoll').type = 'text'`); // damit das Komma im Test ankommt
+  await setze('#st-wochensoll', '15,25');
+  await klick('#form-einstellungen button[type=submit]');
+  await sleep(300);
+  [standZahl, standText, erreicht] = await stand();
+  pruefe(standZahl === '15:15 h / 15:15 h' && standText.startsWith('Soll genau erreicht') && erreicht, `Soll erreicht wird grün (${standText})`);
+  await shot(`${ordner}/05b-soll-erreicht.png`);
+  await klick('#btn-einstellungen');
+  await sleep(300);
+  await setze('#st-wochensoll', '43');
+  await klick('#form-einstellungen button[type=submit]');
+  await sleep(300);
   const breite = await evaluate(`document.documentElement.scrollWidth <= window.innerWidth`);
   pruefe(breite, 'Kein seitliches Scrollen');
 

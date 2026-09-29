@@ -195,11 +195,21 @@ h1, h2 { margin: 0; }
 }
 .tag-mehr svg { width: 18px; height: 18px; }
 
-.wochen-total {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-  padding: 14px 4px 0; color: var(--text-2);
+/* Wochenstand: eingetragene Stunden gegenüber dem Wochensoll */
+.stand {
+  background: var(--karte); border: 1px solid var(--linie); border-radius: var(--radius);
+  box-shadow: var(--schatten); padding: 14px 16px;
 }
-.wochen-total strong { color: var(--text); font-size: 1.1rem; }
+.stand-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.stand-kopf > span { font-weight: 650; color: var(--text-2); }
+.stand-kopf strong { font-size: 1.3rem; }
+.stand-soll { font-size: 1rem; font-weight: 600; color: var(--text-2); }
+.stand-balken { height: 10px; border-radius: 999px; background: var(--linie); overflow: hidden; margin: 10px 0 8px; }
+.stand-balken span { display: block; height: 100%; border-radius: inherit; background: var(--akzent); transition: width 0.3s; }
+.stand-text { display: flex; align-items: flex-start; gap: 6px; font-size: 0.92rem; color: var(--text-2); }
+.stand-text svg { width: 16px; height: 16px; margin-top: 2px; }
+.stand-erreicht .stand-balken span { background: var(--ok); }
+.stand-erreicht .stand-text { color: var(--ok); font-weight: 650; }
 
 .leerzustand {
   background: var(--karte); border-radius: var(--radius); padding: 24px 20px; text-align: center;

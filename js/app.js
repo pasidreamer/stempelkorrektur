@@ -189,13 +189,32 @@ function zeichneTage() {
       </section>`;
   });
 
-  const total = summe(eigene);
-  const name = person(ansicht.personId)?.name ?? '';
-  const totalHtml = eigene.length
-    ? `<div class="wochen-total"><span>Total ${esc(name)}</span><strong>${zeit.stundenText(total)}</strong></div>`
-    : '';
+  $('#tage').innerHTML = standKarte(eigene) + tage.join('');
+}
 
-  $('#tage').innerHTML = tage.join('') + totalHtml;
+// «Wochenstand»: eingetragene Stunden (inkl. Nachtzuschlag, der wird ja gutgeschrieben)
+// gegenüber dem Wochensoll aus den Einstellungen. Nur in der App, nicht im PDF.
+function standKarte(eigene) {
+  const soll = Math.round((einstellungen().wochensoll || 0) * 60);
+  if (soll <= 0) return '';
+  const { netto, zuschlag } = summe(eigene);
+  const ist = netto + zuschlag;
+  const diff = ist - soll;
+  const breite = Math.min(100, Math.round((ist / soll) * 100));
+  const text =
+    diff === 0 ? 'Soll genau erreicht' : diff > 0 ? `+${zeit.dauer(diff)} über dem Soll` : `noch ${zeit.dauer(-diff)} bis zum Soll`;
+  const nacht = zuschlag ? ` · inkl. ${zeit.dauer(zuschlag)} Nachtzuschlag` : '';
+  return `
+    <section class="stand ${diff >= 0 ? 'stand-erreicht' : ''}" aria-label="Wochenstand">
+      <div class="stand-kopf">
+        <span>Wochenstand</span>
+        <strong>${zeit.dauer(ist)} <span class="stand-soll">/ ${zeit.dauer(soll)}</span></strong>
+      </div>
+      <div class="stand-balken" role="progressbar" aria-label="Anteil am Wochensoll" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${breite}">
+        <span style="width: ${breite}%"></span>
+      </div>
+      <div class="stand-text">${diff >= 0 ? symbol('haken') : ''}<span>${text}${nacht}</span></div>
+    </section>`;
 }
 
 function zeichneFuss() {
@@ -560,6 +579,7 @@ function oeffneEinstellungen() {
   $('#st-nacht-von').value = e.nacht.von;
   $('#st-nacht-bis').value = e.nacht.bis;
   $('#st-nacht-prozent').value = e.nacht.prozent;
+  $('#st-wochensoll').value = e.wochensoll;
   $('#st-fehler').textContent = '';
 
   zeichneEinstellungsListen();
@@ -605,11 +625,13 @@ function speichereEinstellungen(ereignis) {
   const gruende = [...new Set(entwurf.gruende.map((g) => g.trim()).filter(Boolean))];
   const empfaenger = $('#st-empfaenger').value.trim();
   const prozent = Number($('#st-nacht-prozent').value);
+  const wochensoll = Number(String($('#st-wochensoll').value).replace(',', '.'));
 
   const fehler =
     (personen.length === 0 && 'Bitte mindestens eine Person eintragen.') ||
     (empfaenger && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(empfaenger) && 'Die Empfänger-Adresse sieht nicht richtig aus.') ||
     (gruende.length === 0 && 'Bitte mindestens einen Grund eintragen.') ||
+    (!(wochensoll > 0 && wochensoll <= 80) && 'Das Wochensoll muss zwischen 1 und 80 Stunden liegen.') ||
     (!(prozent >= 0 && prozent <= 100) && 'Der Nachtzuschlag muss zwischen 0 und 100 % liegen.') ||
     ((!$('#st-nacht-von').value || !$('#st-nacht-bis').value) && 'Bitte die Nachtzeit ausfüllen.');
   if (fehler) {
@@ -626,6 +648,7 @@ function speichereEinstellungen(ereignis) {
     anrede: $('#st-anrede').value.trim() || 'Hallo',
     absender: $('#st-absender').value.trim(),
     nacht: { von: $('#st-nacht-von').value, bis: $('#st-nacht-bis').value, prozent },
+    wochensoll,
   });
   if (!person(ansicht.personId)) ansicht.personId = personen[0].id;
 
