@@ -496,7 +496,7 @@ const IST_HANDY =
   /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
 
 // Der Samsung-eigene Browser («Samsung Internet») meldet zwar, er könne Dateien teilen, verweigert
-// PDFs dann aber mit «NotAllowedError: Permission denied» (bekannt, am 29.09.2026 auf Pascals
+// PDFs dann aber mit «NotAllowedError: Permission denied» (bekannt, am 29.09.2026 auf einem echten
 // Samsung gesehen). Dort darum gleich den Weg «PDF speichern + Mail öffnen» nehmen. Chrome kann es.
 const IST_SAMSUNG_BROWSER = /SamsungBrowser/i.test(navigator.userAgent);
 

@@ -83,7 +83,7 @@ Postausgang.
 Menü ⋮ oben rechts → «App installieren» (oder «Zum Startbildschirm hinzufügen»).
 
 Warum nicht «Samsung Internet»: Der Samsung-eigene Browser verweigert das Teilen von PDFs
-(«NotAllowedError: Permission denied», am 29.09.2026 auf Pascals Samsung aufgetreten; bekannte
+(«NotAllowedError: Permission denied», am 29.09.2026 auf einem echten Samsung aufgetreten; bekannte
 Eigenheit, Bilder und Videos teilt er). Chrome teilt PDFs. Läuft die App trotzdem im
 Samsung-Browser, erkennt sie das (`SamsungBrowser` in der Kennung) und nimmt den Ersatzweg: PDF
 speichern und die Mail mit Empfänger öffnen, das PDF dann über «Anhängen» aus «Downloads» wählen.
