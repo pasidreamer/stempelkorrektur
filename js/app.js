@@ -435,7 +435,7 @@ function zeichneSenden() {
   $('#s-ansehen').disabled = leer;
 
   $('#s-hinweis').textContent = kannPdfTeilen(new File([''], 'probe.pdf', { type: 'application/pdf' }))
-    ? `Im nächsten Schritt «Mail» oder «Outlook» wählen – das PDF ist angehängt.${
+    ? `Im nächsten Schritt deine Mail-App wählen (z. B. Mail, Gmail oder Outlook) – das PDF ist angehängt.${
         e.empfaenger ? ` Die Adresse ${e.empfaenger} liegt dann in der Zwischenablage: ins Feld «An» tippen und «Einsetzen».` : ''
       }`
     : 'Das PDF wird im Download-Ordner gespeichert und die Mail öffnet sich. Dann das PDF in die Mail ziehen und senden.';

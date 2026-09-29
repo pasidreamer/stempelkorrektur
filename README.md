@@ -28,7 +28,8 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
     Nachtzuschlag, darunter das Wochentotal und unten die Unterschriftsfelder wie auf dem Papier
     (Visum Mitarbeiter/in, Visum Vorgesetzte/r, Erfassungsdatum & Visum Personalbüro).
     «PDF ansehen» zeigt es vorher an.
-  - **Auf dem Handy** öffnet sich «Teilen»: «Mail» oder «Outlook» wählen, das PDF ist angehängt,
+  - **Auf dem Handy** öffnet sich «Teilen»: die Mail-App wählen (iPhone: Mail/Outlook, Samsung:
+    Gmail/E-Mail/Outlook), das PDF ist angehängt,
     Betreff und ein kurzer Text mit den Wochentotalen stehen drin. Die Büro-Adresse legt die App
     in die Zwischenablage: ins Feld «An» tippen und «Einsetzen» (die Mail-App schlägt sie nach dem
     ersten Mal auch selbst vor).
@@ -70,7 +71,17 @@ Postausgang.
 2. Teilen-Knopf → «Zum Home-Bildschirm».
 3. Ab dann über das Symbol starten. Die App läuft dann ohne Browserleiste und auch ohne Empfang.
 
-(Android/Chrome: Menü ⋮ → «App installieren» bzw. «Zum Startbildschirm hinzufügen».)
+## Aufs Handy bringen (Android, z. B. Samsung)
+
+- **Chrome:** Adresse öffnen → Menü ⋮ oben rechts → «App installieren» (oder «Zum Startbildschirm
+  hinzufügen»).
+- **Samsung Internet:** Adresse öffnen → Menü ≡ unten rechts → «Seite hinzufügen zu» →
+  «Startbildschirm». Oft erscheint auch direkt ein Installieren-Symbol in der Adressleiste.
+
+Die App erscheint danach mit eigenem Symbol bei den Apps. Am 29.09. geprüft: Android meldet die App
+als installierbar (keine Fehler im Manifest). Den PDF-Versand habe ich mit einem vorgetäuschten
+Samsung-Handy geprüft: PDF über «Teilen», Adresse in der Zwischenablage. Auf einem echten Samsung ist
+er noch ungetestet. «PDF ansehen» lädt das PDF auf Android meist herunter, statt es anzuzeigen.
 
 ## Dateien
 
