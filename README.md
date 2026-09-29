@@ -10,7 +10,9 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
 - **Woche:** Beim Öffnen zeigt die App am Montag automatisch die *letzte* Woche (da wird
   nachgetragen), an allen anderen Tagen die laufende. Mit ‹ › blätterst du.
 - **Personen:** Oben die Reiter, einer pro Person (du zuerst, dann die Mitarbeitenden). Unter dem
-  Namen steht das Wochentotal, ein Häkchen heisst «schon gesendet».
+  Namen steht das Wochentotal, ein Häkchen heisst «schon gesendet». In den Einstellungen hat jede
+  Person ein Feld «Vorgesetzte/r»: bei dir dein Chef, bei deinen Mitarbeitenden bist du schon
+  eingetragen.
 - **Eintragen:** Tag antippen → Von/Bis (die Handy-Zeitauswahl), Pause und Grund antippen,
   Speichern. Die App schlägt immer die Werte vom letzten Eintrag vor.
 - **Gilt für:** Im Eintrag weitere Personen antippen, dann wird derselbe Eintrag für alle
@@ -23,10 +25,13 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
 - **Senden:** Unten «KW … per Mail senden» → Personen wählen → «PDF per Mail senden».
   - **Das PDF** hat eine A4-Seite pro Person, aufgebaut wie das Papierformular: Kopf mit KW,
     Mitarbeiter/in und Vorgesetzte/r, alle 7 Tage mit Von, Bis, Pause, Grund, Stunden,
-    Nachtzuschlag, darunter das Wochentotal. «PDF ansehen» zeigt es vorher an.
+    Nachtzuschlag, darunter das Wochentotal und unten die Unterschriftsfelder wie auf dem Papier
+    (Visum Mitarbeiter/in, Visum Vorgesetzte/r, Erfassungsdatum & Visum Personalbüro).
+    «PDF ansehen» zeigt es vorher an.
   - **Auf dem Handy** öffnet sich «Teilen»: «Mail» oder «Outlook» wählen, das PDF ist angehängt,
-    Betreff und ein kurzer Text mit den Wochentotalen stehen drin. Den Empfänger tippt man an
-    (die Mail-App schlägt ihn nach dem ersten Mal selbst vor).
+    Betreff und ein kurzer Text mit den Wochentotalen stehen drin. Die Büro-Adresse legt die App
+    in die Zwischenablage: ins Feld «An» tippen und «Einsetzen» (die Mail-App schlägt sie nach dem
+    ersten Mal auch selbst vor).
   - **Am PC** wird das PDF im Download-Ordner gespeichert und die Mail öffnet sich mit Empfänger,
     Betreff und Text. Das PDF zieht man dann in die Mail.
   - **Ohne PDF:** Unter «Lieber ohne PDF, nur als Text-Mail» gibt es die alte Text-Mail mit
@@ -82,7 +87,8 @@ Postausgang.
 | `sw.js` | «Service Worker»: legt die App-Dateien auf dem Handy ab, damit sie offline startet |
 | `manifest.webmanifest`, `icons/` | Name und Symbol für den Home-Bildschirm |
 | `tests/zeit.test.mjs` | 13 Rechentests |
-| `tests/pdf.test.mjs` | 4 PDF-Tests (gültiger Aufbau, Umlaute, Breiten, Dateiname); legt `tests/ausgabe/probe.pdf` ab |
+| `tests/pdf.test.mjs` | 6 PDF-Tests (gültiger Aufbau, Umlaute, Breiten, Dateiname, Vorgesetzte/r und Unterschriften, übervolle Woche); legt `tests/ausgabe/probe.pdf` und `volle-woche.pdf` ab |
+| `tests/speicher.test.mjs` | 2 Tests: ältere gespeicherte Daten (ohne Vorgesetzte/n) werden richtig ergänzt |
 | `tests/ablauf.mjs`, `tests/cdp.mjs` | Spielt die ganze App in einem unsichtbaren Edge in Handygrösse durch |
 
 Die `js`-Dateien sind bewusst **normale Skripte, keine «Module»**. Module blockiert der Browser,
@@ -119,30 +125,33 @@ die Handys die neue Fassung sicher übernehmen.
 `index.html` nur als Vorschau an, ohne dass die App läuft. Dafür braucht es eine Webadresse
 (Hosting).
 
-## Verifikationsstand (29.09.2026)
+## Verifikationsstand (29.09.2026, Nachmittag: Vorgesetzte/r und Unterschriften)
 
 Geprüft:
-- `npm test`: 17/17 grün. Davon 13 Rechentests (normaler Tag, 23–04 Uhr = 5:00 h +1:15 h, Abend
+- `npm test`: 21/21 grün. Davon 13 Rechentests (normaler Tag, 23–04 Uhr = 5:00 h +1:15 h, Abend
   in die Nacht, früher Morgen, Pause anteilig, lange Schicht, eigenes Nachtfenster, Eingabefehler,
   Kalenderwochen inkl. Jahreswechsel und Sommerzeit, Startwoche) und 4 PDF-Tests (jedes Objekt
   steht an der Stelle, die das Verzeichnis nennt, Längenangaben stimmen, reines ASCII, ä/ü/«–»/
-  Klammern richtig kodiert, Kürzen mit «…», Dateiname).
-- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 38/38 grün.
-  Geprüft werden Einrichtung, Team-Eintrag für 4 Personen, Nachteintrag, Fehlermeldung,
+  Klammern richtig kodiert, Kürzen mit «…», Dateiname), Vorgesetzte/r pro Person und
+  Unterschriftsfelder auf jedem Blatt, übervolle Woche (Tabelle und Unterschriften laufen auf eine
+  Folgeseite, nichts ragt über den Rand) und 2 Speichertests (alte Daten werden ergänzt).
+- `tests/ablauf.mjs` in Edge headless mit 390 × 844 px über `http://localhost`: 42/42 grün.
+  Geprüft werden Einrichtung (inkl. Vorgesetzte/r vorbelegt), Team-Eintrag für 4 Personen, Nachteintrag, Fehlermeldung,
   Wochentotal, kein seitliches Scrollen, Senden-Blatt (Übersicht, Hinweis), Text-Mail-Link,
-  «PDF ansehen» (gültiges PDF mit 4 Seiten), PC-Weg (PDF-Download mit richtigem Namen, danach
+  «PDF ansehen» (gültiges PDF mit 4 Seiten, Vorgesetzte/r und Unterschriften je Blatt), PC-Weg (PDF-Download mit richtigem Namen, danach
   mailto mit Empfänger, Betreff, Begleittext), Status, Warnung nach Änderung, Handy-Weg (iPhone
   vorgetäuscht: PDF wird mit Betreff und Text an «Teilen» übergeben, nur geänderte Person
-  vorausgewählt), Wochenwechsel, dunkles Design, Service Worker, Start **offline**, keine
+  vorausgewählt, Büro-Adresse in der Zwischenablage), Wochenwechsel, dunkles Design, Service Worker, Start **offline**, keine
   Konsolenfehler.
-- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 35/35 grün (ohne die 3
+- Derselbe Ablauf per `file:///…/index.html` (wie Doppelklick): 39/39 grün (ohne die 3
   Offline-Prüfungen).
 - Das von der App erzeugte PDF im PDF-Programm von Edge angesehen: 4 Seiten, Umlaute, Spalten
   und Totale korrekt.
 
 Noch nicht geprüft (braucht ein echtes Handy):
-- Das «Teilen»-Fenster auf dem iPhone: ob «Mail»/«Outlook» das PDF anhängt und Betreff und Text
-  übernimmt. Im Test wurde das Teilen nur nachgebildet.
+- Vom User am 29.09. auf dem iPhone bestätigt: «PDF per Mail senden» hängt das PDF an. Der Empfänger
+  kommt dabei nicht mit, das lässt «Teilen» nicht zu. Noch nicht auf dem Gerät geprüft: ob das
+  Einsetzen der Adresse aus der Zwischenablage klappt.
 - «PDF ansehen» auf dem iPhone, besonders wenn die App vom Home-Bildschirm gestartet ist.
 - Zeitauswahl, Tastatur und «Zum Home-Bildschirm» auf dem echten Gerät.
 - Am Firmen-PC: ob Outlook beim Mail-Link aufgeht (hängt davon ab, welches Mailprogramm in Windows

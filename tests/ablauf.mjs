@@ -30,11 +30,15 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   await shot(`${ordner}/01-einrichtung.png`);
 
   await setze('[data-person-index="0"]', 'Lena');
+  await setze('[data-vorgesetzter-index="0"]', 'Beat Chef');
   for (const name of ['Marco', 'Luca', 'Nina']) {
     await klick('#st-person-plus');
     const i = await evaluate(`document.querySelectorAll('[data-person-index]').length - 1`);
     await setze(`[data-person-index="${i}"]`, name);
   }
+  const vorgesetzte = await evaluate(`[...document.querySelectorAll('[data-vorgesetzter-index]')].map((f) => f.value).join(',')`);
+  pruefe(vorgesetzte === 'Beat Chef,Lena,Lena,Lena', `Vorgesetzte/r: eigenes Feld frei wählbar, Mitarbeitende haben dich vorbelegt (${vorgesetzte})`);
+  await shot(`${ordner}/01b-einrichtung-vorgesetzte.png`);
   await setze('#st-empfaenger', 'buero@example.ch');
   await setze('#st-anrede', 'Hallo Sandra');
   await setze('#st-absender', 'Lena');
@@ -125,6 +129,9 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   const pdf = Buffer.from(pdf64, 'base64');
   writeFileSync(`${ordner}/woche.pdf`, pdf);
   pruefe(pdf.toString('latin1').startsWith('%PDF-1.4') && /\/Count 4 /.test(pdf.toString('latin1')), `«PDF ansehen»: gültiges PDF mit 4 Seiten (${pdf.length} Byte)`);
+  const imPdf = (s) => pdf.toString('latin1').split(s).length - 1;
+  pruefe(imPdf('(Beat Chef)') === 1 && imPdf('(Lena)') >= 4, 'PDF: Vorgesetzte/r pro Person (Chef bei Lena, Lena bei den anderen)');
+  pruefe(imPdf('(Datum, Visum Vorgesetzte/r)') === 4 && imPdf('(Datum, Visum Mitarbeiter/in)') === 4, 'PDF: Unterschriftszeilen auf jedem Blatt');
 
   // 5b. PDF per Mail senden – PC-Weg: PDF speichern, dann Mail öffnen
   await klick('#s-pdf-senden');
@@ -154,8 +161,9 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   });
   await send('Page.reload');
   await sleep(2500);
-  await evaluate(`window.__geteilt = []; navigator.canShare = () => true;
-    navigator.share = async (d) => { window.__geteilt.push({ name: d.files[0].name, typ: d.files[0].type, groesse: d.files[0].size, titel: d.title, text: d.text }); };`);
+  await evaluate(`window.__geteilt = []; window.__ablage = []; navigator.canShare = () => true;
+    navigator.share = async (d) => { window.__geteilt.push({ name: d.files[0].name, typ: d.files[0].type, groesse: d.files[0].size, titel: d.title, text: d.text }); };
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { window.__ablage.push(t); } } });`);
   await klick('#btn-senden');
   await sleep(300);
   pruefe((await text('#s-hinweis'))?.includes('Outlook'), `Handy: Hinweis «Mail oder Outlook wählen» (${await text('#s-hinweis')})`);
@@ -166,6 +174,8 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   pruefe(geteilt?.typ === 'application/pdf' && geteilt.groesse > 3000, `Handy: PDF wird zum Teilen übergeben (${geteilt?.name}, ${geteilt?.groesse} Byte)`);
   pruefe(new RegExp(`^${pdfName}\\d{4}_Lena\\.pdf$`).test(geteilt?.name ?? ''), 'Handy: nur die geänderte Person ist vorausgewählt, Name im Dateinamen');
   pruefe(geteilt?.titel.startsWith('Stempelkorrekturen KW') && geteilt.text.includes('Im Anhang'), 'Handy: Betreff und Begleittext dabei');
+  const ablage = await evaluate('window.__ablage');
+  pruefe(ablage[0] === 'buero@example.ch', `Handy: Büro-Adresse liegt in der Zwischenablage (${ablage[0]})`);
   pruefe((await text('#status'))?.startsWith('Mail erstellt'), `Handy: Status danach (${await text('#status')})`);
 
   // 7. Woche wechseln

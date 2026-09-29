@@ -31,7 +31,7 @@ const SP = {
   nacht: RAND + BREITE - 6, // rechtsbündig
 };
 
-function kopf(seite, { person, montag, einstellungen, fortsetzung }) {
+function kopf(seite, { person, montag, fortsetzung, ohneTabelle = false }) {
   const { woche, jahr } = kalenderwoche(montag);
   const sonntag = plusTage(montag, 6);
   seite.text(RAND, 58, 'Stempelkorrekturen', { groesse: 20, fett: true, farbe: AKZENT });
@@ -44,8 +44,10 @@ function kopf(seite, { person, montag, einstellungen, fortsetzung }) {
   seite.text(RAND, 128, PDF.kuerzen(person.name, BREITE / 2 - 12, 13, true), { groesse: 13, fett: true, farbe: TEXT });
   const mitte = RAND + BREITE / 2;
   seite.text(mitte, 112, 'VORGESETZTE/R', { groesse: 7.5, fett: true, farbe: GRAU });
-  seite.text(mitte, 128, PDF.kuerzen(einstellungen.absender?.trim() || '–', BREITE / 2, 13, true), { groesse: 13, fett: true, farbe: TEXT });
+  // Pro Person eingetragen (Einstellungen). Leer = Feld bleibt frei zum Ausfüllen von Hand.
+  seite.text(mitte, 128, PDF.kuerzen(person.vorgesetzter?.trim() ?? '', BREITE / 2, 13, true), { groesse: 13, fett: true, farbe: TEXT });
   seite.linie(RAND, 142, RAND + BREITE, 142, { farbe: LINIE });
+  if (ohneTabelle) return 142;
 
   // Tabellenkopf
   seite.flaeche(RAND, 156, BREITE, 22, KOPF_FLAECHE);
@@ -75,7 +77,7 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen }) {
   const seiten = [];
   let seite = dok.seite();
   seiten.push(seite);
-  let y = kopf(seite, { person, montag, einstellungen });
+  let y = kopf(seite, { person, montag });
   let summeNetto = 0;
   let summeZuschlag = 0;
   let mitMitternacht = false;
@@ -89,7 +91,7 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen }) {
     if (y + hoehe > UNTEN) {
       seite = dok.seite();
       seiten.push(seite);
-      y = kopf(seite, { person, montag, einstellungen, fortsetzung: true });
+      y = kopf(seite, { person, montag, fortsetzung: true });
     }
     if (i >= 5) seite.flaeche(RAND, y, BREITE, hoehe, WOCHENENDE);
 
@@ -143,10 +145,31 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen }) {
     seite.text(RAND, y, h, { groesse: 8, farbe: GRAU });
     y += 12;
   }
+
+  // Unterschriften wie auf dem Papierformular, unten auf der Seite.
+  // Passt der Block nicht mehr hin, kommt er auf eine eigene Folgeseite.
+  let u = Math.max(y + 24, 700);
+  if (u + 90 > 800) {
+    seite = dok.seite();
+    seiten.push(seite);
+    u = kopf(seite, { person, montag, fortsetzung: true, ohneTabelle: true }) + 30;
+  }
+  unterschriften(seite, u);
   return seiten;
 }
 
-// personen: [{ id, name }] – je eine Seite (oder mehr); eintraege: alle Einträge der Woche
+function unterschriften(seite, y) {
+  const halb = BREITE / 2;
+  const feld = (x, yLinie, breite, text) => {
+    seite.linie(x, yLinie, x + breite, yLinie, { farbe: TEXT, dicke: 0.6 });
+    seite.text(x, yLinie + 12, text, { groesse: 7.5, farbe: GRAU });
+  };
+  feld(RAND, y + 28, halb - 18, 'Datum, Visum Mitarbeiter/in');
+  feld(RAND + halb, y + 28, halb, 'Datum, Visum Vorgesetzte/r');
+  feld(RAND, y + 72, halb - 18, 'Erfassungsdatum & Visum Personalbüro');
+}
+
+// personen: [{ id, name, vorgesetzter }] – je eine Seite (oder mehr); eintraege: alle Einträge der Woche
 function erstellen({ montag, personen, eintraege, einstellungen, erstelltAm = new Date() }) {
   const dok = PDF.neuesDokument();
   const alleSeiten = personen.flatMap((person) =>

@@ -435,7 +435,9 @@ function zeichneSenden() {
   $('#s-ansehen').disabled = leer;
 
   $('#s-hinweis').textContent = kannPdfTeilen(new File([''], 'probe.pdf', { type: 'application/pdf' }))
-    ? `Im nächsten Schritt «Mail» oder «Outlook» wählen – das PDF ist angehängt.${e.empfaenger ? ` Als Empfänger ${e.empfaenger} antippen.` : ''}`
+    ? `Im nächsten Schritt «Mail» oder «Outlook» wählen – das PDF ist angehängt.${
+        e.empfaenger ? ` Die Adresse ${e.empfaenger} liegt dann in der Zwischenablage: ins Feld «An» tippen und «Einsetzen».` : ''
+      }`
     : 'Das PDF wird im Download-Ordner gespeichert und die Mail öffnet sich. Dann das PDF in die Mail ziehen und senden.';
 
   // Text-Mail ohne PDF (wie bisher)
@@ -509,6 +511,9 @@ async function pdfSenden() {
   const text = begleitText({ montag: ansicht.montag, personen, eintraege: wochenEintraege(), einstellungen: e });
 
   if (kannPdfTeilen(datei)) {
+    // «Teilen» kann keinen Empfänger mitgeben (das erlaubt das Handy nicht). Darum die Adresse
+    // in die Zwischenablage legen. Nicht abwarten, sonst verfällt die Erlaubnis zum Teilen.
+    if (e.empfaenger) navigator.clipboard?.writeText(e.empfaenger).catch(() => {});
     try {
       await navigator.share({ files: [datei], title: titel, text });
       sendenAbschliessen('PDF an die Mail-App übergeben');
@@ -545,7 +550,7 @@ function oeffneEinstellungen() {
   const e = einstellungen();
   entwurf.personen = e.personen.map((p) => ({ ...p }));
   entwurf.gruende = [...e.gruende];
-  if (entwurf.personen.length === 0) entwurf.personen.push({ id: neueId(), name: '' });
+  if (entwurf.personen.length === 0) entwurf.personen.push({ id: neueId(), name: '', vorgesetzter: '' });
 
   $('#st-willkommen').hidden = e.personen.length > 0;
   $('#st-empfaenger').value = e.empfaenger;
@@ -566,10 +571,17 @@ function zeichneEinstellungsListen() {
   $('#st-personen').innerHTML = entwurf.personen
     .map(
       (p, i) => `
-      <div class="listen-zeile">
-        <input type="text" class="eingabe" data-person-index="${i}" value="${esc(p.name)}"
-          placeholder="${i === 0 ? 'Dein Name' : `Mitarbeiter/in ${i}`}" aria-label="Name Person ${i + 1}" autocomplete="off">
-        <button type="button" class="icon-btn" data-person-weg="${i}" aria-label="Person entfernen">${symbol('muell')}</button>
+      <div class="person-karte">
+        <div class="listen-zeile">
+          <input type="text" class="eingabe" data-person-index="${i}" value="${esc(p.name)}"
+            placeholder="${i === 0 ? 'Dein Name' : `Mitarbeiter/in ${i}`}" aria-label="Name Person ${i + 1}" autocomplete="off">
+          <button type="button" class="icon-btn" data-person-weg="${i}" aria-label="Person entfernen">${symbol('muell')}</button>
+        </div>
+        <label class="person-vorgesetzt">
+          <span>Vorgesetzte/r</span>
+          <input type="text" class="eingabe" data-vorgesetzter-index="${i}" value="${esc(p.vorgesetzter ?? '')}"
+            placeholder="${i === 0 ? 'Name deines Chefs' : esc(entwurf.personen[0]?.name || 'Dein Name')}" autocomplete="off">
+        </label>
       </div>`,
     )
     .join('');
@@ -587,7 +599,9 @@ function zeichneEinstellungsListen() {
 
 function speichereEinstellungen(ereignis) {
   ereignis.preventDefault();
-  const personen = entwurf.personen.map((p) => ({ ...p, name: p.name.trim() })).filter((p) => p.name);
+  const personen = entwurf.personen
+    .map((p) => ({ ...p, name: p.name.trim(), vorgesetzter: (p.vorgesetzter ?? '').trim() }))
+    .filter((p) => p.name);
   const gruende = [...new Set(entwurf.gruende.map((g) => g.trim()).filter(Boolean))];
   const empfaenger = $('#st-empfaenger').value.trim();
   const prozent = Number($('#st-nacht-prozent').value);
@@ -731,8 +745,9 @@ $('#s-ansehen').addEventListener('click', pdfAnsehen);
 $('#form-einstellungen').addEventListener('submit', speichereEinstellungen);
 
 $('#st-personen').addEventListener('input', (ereignis) => {
-  const i = ereignis.target.dataset.personIndex;
-  if (i !== undefined) entwurf.personen[i].name = ereignis.target.value;
+  const { personIndex, vorgesetzterIndex } = ereignis.target.dataset;
+  if (personIndex !== undefined) entwurf.personen[personIndex].name = ereignis.target.value;
+  if (vorgesetzterIndex !== undefined) entwurf.personen[vorgesetzterIndex].vorgesetzter = ereignis.target.value;
 });
 $('#st-gruende').addEventListener('input', (ereignis) => {
   const i = ereignis.target.dataset.grundIndex;
@@ -756,7 +771,8 @@ $('#st-gruende').addEventListener('click', (ereignis) => {
 });
 
 $('#st-person-plus').addEventListener('click', () => {
-  entwurf.personen.push({ id: neueId(), name: '' });
+  // Neue Mitarbeitende: du (die erste Person) bist als Vorgesetzte/r schon eingetragen
+  entwurf.personen.push({ id: neueId(), name: '', vorgesetzter: entwurf.personen[0]?.name.trim() ?? '' });
   zeichneEinstellungsListen();
   $(`[data-person-index="${entwurf.personen.length - 1}"]`).focus();
 });

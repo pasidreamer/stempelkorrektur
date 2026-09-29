@@ -288,6 +288,14 @@ h1, h2 { margin: 0; }
 .listen-zeile { display: flex; gap: 8px; align-items: center; }
 .listen-zeile .eingabe { flex: 1; }
 .listen-zeile .icon-btn { color: var(--gefahr); }
+.person-karte {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px; border: 1px solid var(--linie); border-radius: 14px; background: var(--bg);
+}
+.person-karte .eingabe { background: var(--karte); }
+.person-vorgesetzt { display: flex; flex-direction: column; gap: 4px; }
+.person-vorgesetzt span { font-size: 0.85rem; font-weight: 650; color: var(--text-2); }
+.person-vorgesetzt .eingabe { min-height: 46px; font-size: 1rem; }
 
 .willkommen {
   background: var(--akzent-weich); color: var(--text); border-radius: 14px;

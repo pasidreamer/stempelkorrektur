@@ -14,7 +14,7 @@ const STANDARD_EINSTELLUNGEN = {
   cc: '',
   anrede: 'Hallo',
   absender: '',
-  personen: [], // [{ id, name }]
+  personen: [], // [{ id, name, vorgesetzter }]
   gruende: ['Lüftec', 'ESL', 'Reparatur intern'],
   nacht: { von: '22:00', bis: '05:00', prozent: 25 },
 };
@@ -41,8 +41,17 @@ function laden() {
   } catch (fehler) {
     console.warn('Gespeicherte Daten konnten nicht gelesen werden', fehler);
   }
+  vorgesetzteErgaenzen(zustand.einstellungen.personen);
   aufraeumen(zustand);
   return zustand;
+}
+
+// Seit 29.09.2026 hat jede Person ein Feld «vorgesetzter». Ältere Daten kennen es noch nicht:
+// Die erste Person (du) bekommt ein leeres Feld, alle anderen dich als Vorgesetzte/n.
+function vorgesetzteErgaenzen(personen) {
+  personen.forEach((p, i) => {
+    if (p.vorgesetzter === undefined) p.vorgesetzter = i === 0 ? '' : personen[0].name;
+  });
 }
 
 function speichern(zustand) {

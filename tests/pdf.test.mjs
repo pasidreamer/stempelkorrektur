@@ -8,7 +8,10 @@ import '../js/pdf.js';
 import '../js/blatt.js';
 
 const einstellungen = { absender: 'Lena Kläui', nacht: { von: '22:00', bis: '05:00', prozent: 25 } };
-const personen = [{ id: 'p1', name: 'Lena Kläui' }, { id: 'p2', name: 'Jürg Müller' }];
+const personen = [
+  { id: 'p1', name: 'Lena Kläui', vorgesetzter: 'Beat Chef' },
+  { id: 'p2', name: 'Jürg Müller', vorgesetzter: 'Lena Kläui' },
+];
 const eintraege = [
   { id: 'a', personId: 'p1', datum: '2026-09-21', von: '07:00', bis: '16:30', pause: 30, grund: 'Lüftec', bemerkung: '' },
   { id: 'b', personId: 'p1', datum: '2026-09-22', von: '23:00', bis: '04:00', pause: 0, grund: 'ESL', bemerkung: 'Notfall (Küche) – Zürich' },
@@ -56,4 +59,31 @@ test('Breitenberechnung und Kürzen', () => {
 test('Dateiname', () => {
   assert.equal(Blatt.dateiname('2026-09-21', personen), 'Stempelkorrekturen_KW39_2026.pdf');
   assert.equal(Blatt.dateiname('2026-09-21', [personen[1]]), 'Stempelkorrekturen_KW39_2026_Jürg-Müller.pdf');
+});
+
+test('Vorgesetzte/r pro Person und Unterschriftszeilen auf jeder Seite', () => {
+  const text = Buffer.from(erzeugen()).toString('latin1');
+  assert.equal(text.split('(Beat Chef)').length - 1, 1, 'Chef steht nur auf Lenas Blatt');
+  assert.equal(text.split(String.raw`(Lena Kl\344ui)`).length - 1, 2, 'Lena: einmal Mitarbeiterin, einmal Vorgesetzte');
+  for (const feld of ['(Datum, Visum Mitarbeiter/in)', '(Datum, Visum Vorgesetzte/r)', String.raw`(Erfassungsdatum & Visum Personalb\374ro)`]) {
+    assert.equal(text.split(feld).length - 1, 2, `${feld} einmal pro Person`);
+  }
+});
+
+test('Sehr volle Woche: Tabelle und Unterschriften laufen auf Folgeseiten weiter', () => {
+  const viele = [];
+  for (let t = 21; t <= 27; t++) {
+    for (const [von, bis] of [['06:00', '09:00'], ['10:00', '12:00'], ['13:00', '17:00'], ['18:00', '20:00']]) {
+      viele.push({ id: `${t}${von}`, personId: 'p1', datum: `2026-09-${t}`, von, bis, pause: 0, grund: 'Lüftec', bemerkung: 'Baustelle' });
+    }
+  }
+  const bytes = Blatt.erstellen({ montag: '2026-09-21', personen: [personen[0]], eintraege: viele, einstellungen });
+  const text = Buffer.from(bytes).toString('latin1');
+  const seiten = Number(text.match(/\/Count (\d+) /)[1]);
+  assert.ok(seiten >= 2, `mehrere Seiten (${seiten})`);
+  assert.ok(text.includes(String.raw`(Antrag an Vorgesetzte/n \(Fortsetzung\))`), 'Folgeseite ist als Fortsetzung markiert');
+  assert.equal(text.split('(Datum, Visum Vorgesetzte/r)').length - 1, 1, 'Unterschriften genau einmal');
+  // jede Textposition liegt innerhalb der Seite (zwischen Fuss und Kopf)
+  for (const m of text.matchAll(/1 0 0 1 [\d.]+ ([\d.]+) Tm/g)) assert.ok(Number(m[1]) > 20 && Number(m[1]) < 800, `y=${m[1]}`);
+  writeFileSync('tests/ausgabe/volle-woche.pdf', bytes);
 });
