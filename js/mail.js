@@ -5,7 +5,7 @@
 // Alles Nötige wird unten unter dem Namen «Mail» bereitgestellt.
 
 (() => {
-const { berechneEintrag, istAbwesenheit, ABWESENHEITEN, dauer, stundenText, kurzDatum, kalenderwoche, plusTage, wochentagIndex, WOCHENTAGE_KURZ } =
+const { berechneEintrag, istAbwesenheit, abwesenheitText, dauer, stundenText, kurzDatum, kalenderwoche, plusTage, wochentagIndex, WOCHENTAGE_KURZ } =
   Zeit; // aus zeit.js
 
 const LINIE = '────────────────────';
@@ -31,6 +31,7 @@ function mailText({ montag, personen, eintraege, einstellungen }) {
   const zeilen = [];
   let nachtVorhanden = false;
   let abwesenheitVorhanden = false;
+  let ohneStundenVorhanden = false;
 
   zeilen.push(einstellungen.anrede?.trim() || 'Hallo', '');
   zeilen.push(`Hier die Stempelkorrekturen für KW ${woche} (Mo ${kurzDatum(montag)} – So ${kurzDatum(plusTage(montag, 6), true)}).`);
@@ -50,8 +51,9 @@ function mailText({ montag, personen, eintraege, einstellungen }) {
       if (r.zuschlag > 0) nachtVorhanden = true;
 
       if (istAbwesenheit(e)) {
-        abwesenheitVorhanden = true;
-        zeilen.push('', tagText(e.datum), `${ABWESENHEITEN[e.art]} (ganzer Tag)`);
+        if (e.minuten && e.ganzerTag !== false) abwesenheitVorhanden = true;
+        if (!e.minuten) ohneStundenVorhanden = true;
+        zeilen.push('', tagText(e.datum), abwesenheitText(e));
         if (e.bemerkung) zeilen.push(`Bemerkung: ${e.bemerkung}`);
         zeilen.push(`= ${dauer(r.netto)}`);
         continue;
@@ -72,7 +74,10 @@ function mailText({ montag, personen, eintraege, einstellungen }) {
     zeilen.push('', '', `Nachtarbeit ${nacht.von}–${nacht.bis} Uhr mit ${nacht.prozent} % Zuschlag (Pause anteilig abgezogen).`);
   }
   if (abwesenheitVorhanden) {
-    zeilen.push('', `Krank/Ferien zählen als ganzer Tag (Wochensoll ${einstellungen.wochensoll} h ÷ 5).`);
+    zeilen.push('', `Krank/Ferien «ganzer Tag» = Wochensoll ${einstellungen.wochensoll} h ÷ 5.`);
+  }
+  if (ohneStundenVorhanden) {
+    zeilen.push('', 'Krank/Ferien «keine Stunden» = nichts zu verrechnen (Stundenlohn).');
   }
 
   zeilen.push('', '', 'Freundliche Grüsse');
@@ -128,7 +133,10 @@ function signatur(eintraege) {
   // Krank/Ferien hängen Art und Minuten an. Bei normalen Einträgen bleibt der Fingerabdruck
   // wie früher, sonst würden schon gesendete Wochen plötzlich als «geändert» gelten.
   const text = JSON.stringify(
-    sortiert(eintraege).map((e) => [e.datum, e.von, e.bis, e.pause, e.grund, e.bemerkung || '', ...(e.art ? [e.art, e.minuten] : [])]),
+    sortiert(eintraege).map((e) => [
+      e.datum, e.von, e.bis, e.pause, e.grund, e.bemerkung || '',
+      ...(e.art ? [e.art, e.minuten, e.ganzerTag !== false] : []),
+    ]),
   );
   let h = 5381;
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;

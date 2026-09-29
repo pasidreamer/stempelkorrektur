@@ -326,6 +326,9 @@ h1, h2 { margin: 0; }
 .person-vorgesetzt { display: flex; flex-direction: column; gap: 4px; }
 .person-vorgesetzt span { font-size: 0.85rem; font-weight: 650; color: var(--text-2); }
 .person-vorgesetzt .eingabe { min-height: 46px; font-size: 1rem; }
+.person-stundenlohn { display: flex; align-items: flex-start; gap: 10px; padding: 4px 2px 0; font-weight: 650; font-size: 0.95rem; }
+.person-stundenlohn input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--akzent); }
+.person-stundenlohn .leise { font-weight: 400; }
 
 .willkommen {
   background: var(--akzent-weich); color: var(--text); border-radius: 14px;

@@ -13,9 +13,21 @@ test('Mailtext: Krank als ganzer Tag, Total inkl. Krank', () => {
   const text = Mail.mailText({ montag: '2026-09-28', personen, eintraege: [arbeit, krank], einstellungen });
   assert.ok(text.includes('Di 29.09.2026\nKrank (ganzer Tag)\n= 8:36 h'), text);
   assert.ok(text.includes('Total Lena: 17:36 h'));
-  assert.ok(text.includes('Krank/Ferien zählen als ganzer Tag (Wochensoll 43 h ÷ 5).'));
+  assert.ok(text.includes('Krank/Ferien «ganzer Tag» = Wochensoll 43 h ÷ 5.'));
+  assert.ok(!text.includes('keine Stunden'));
   const kurz = Mail.begleitText({ montag: '2026-09-28', personen, eintraege: [arbeit, krank], einstellungen });
   assert.ok(kurz.includes('- Lena: 17:36 h'));
+});
+
+test('Mailtext: Stundenlohn krank = keine Stunden, von Hand gewählte Zeit ohne Zusatz', () => {
+  const ohne = { ...krank, minuten: 0, ganzerTag: false };
+  const halb = { ...krank, id: '3', datum: '2026-09-30', art: 'ferien', grund: 'Ferien', minuten: 258, ganzerTag: false };
+  const text = Mail.mailText({ montag: '2026-09-28', personen, eintraege: [arbeit, ohne, halb], einstellungen });
+  assert.ok(text.includes('Di 29.09.2026\nKrank (keine Stunden)\n= 0:00 h'), text);
+  assert.ok(text.includes('Mi 30.09.2026\nFerien\n= 4:18 h'), text);
+  assert.ok(text.includes('Krank/Ferien «keine Stunden» = nichts zu verrechnen (Stundenlohn).'));
+  assert.ok(!text.includes('«ganzer Tag»'), 'keine Erklärung zum ganzen Tag, wenn keiner vorkommt');
+  assert.ok(text.includes('Total Lena: 13:18 h'));
 });
 
 test('Fingerabdruck normaler Einträge bleibt wie früher (sonst gälten gesendete Wochen als geändert)', () => {

@@ -102,6 +102,22 @@ test('Krank und Ferien im PDF: ganzer Tag ohne Zeiten, zählt im Total', () => {
   assert.ok(text.includes(String.raw`(Ferien \(ganzer Tag\))`), 'Ferien-Zeile');
   assert.equal(text.split('(8:36 h)').length - 1, 2, 'je 8:36 h');
   assert.ok(text.includes('(26:12 h)'), 'Total 9:00 + 2 × 8:36 = 26:12 h');
-  assert.ok(text.includes(String.raw`(Krank/Ferien z\344hlen als ganzer Tag \(Wochensoll 43 h \367 5\).)`), 'Erklärung unten');
+  assert.ok(text.includes(String.raw`(Krank/Ferien \253ganzer Tag\273 = Wochensoll 43 h \367 5.)`), 'Erklärung unten');
   writeFileSync('tests/ausgabe/krank-ferien.pdf', bytes);
+});
+
+test('Stundenlohn: Kopf zeigt es an, Krank mit keinen Stunden = 0:00 h und Erklärung', () => {
+  const marco = { id: 'p3', name: 'Marco', vorgesetzter: 'Lena Kläui', stundenlohn: true };
+  const liste = [
+    { id: 'a', personId: 'p3', datum: '2026-09-21', von: '07:00', bis: '12:00', pause: 0, grund: 'Lüftec', bemerkung: '' },
+    { id: 'k', personId: 'p3', datum: '2026-09-22', art: 'krank', minuten: 0, ganzerTag: false, von: '', bis: '', pause: 0, grund: 'Krank', bemerkung: '' },
+  ];
+  const bytes = Blatt.erstellen({ montag: '2026-09-21', personen: [marco], eintraege: liste, einstellungen });
+  const text = Buffer.from(bytes).toString('latin1');
+  assert.ok(text.includes(String.raw`(MITARBEITER/IN \267 STUNDENLOHN)`), 'Stundenlohn im Kopf');
+  assert.ok(text.includes(String.raw`(Krank \(keine Stunden\))`), 'Krank (keine Stunden)');
+  assert.ok(text.includes('(0:00 h)'), '0:00 h');
+  assert.ok(text.includes('(5:00 h)'), 'Total nur die gearbeiteten 5 h');
+  assert.ok(text.includes(String.raw`(Krank/Ferien \253keine Stunden\273 = nichts zu verrechnen \(Stundenlohn\).)`), 'Erklärung unten');
+  writeFileSync('tests/ausgabe/stundenlohn-krank.pdf', bytes);
 });

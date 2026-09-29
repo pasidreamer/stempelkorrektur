@@ -36,6 +36,7 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
     const i = await evaluate(`document.querySelectorAll('[data-person-index]').length - 1`);
     await setze(`[data-person-index="${i}"]`, name);
   }
+  await klick('[data-stundenlohn-index="1"]'); // Marco arbeitet im Stundenlohn
   const vorgesetzte = await evaluate(`[...document.querySelectorAll('[data-vorgesetzter-index]')].map((f) => f.value).join(',')`);
   pruefe(vorgesetzte === 'Beat Chef,Lena,Lena,Lena', `Vorgesetzte/r: eigenes Feld frei wählbar, Mitarbeitende haben dich vorbelegt (${vorgesetzte})`);
   await shot(`${ordner}/01b-einrichtung-vorgesetzte.png`);
@@ -265,10 +266,32 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   await evaluate(`document.querySelector('.tag-leer[data-neu]').click()`);
   await sleep(300);
   await evaluate(`document.querySelector('[data-art="ferien"]').click()`);
+  // Stunden von Hand: «Andere …» 4:00 h
+  await klick('[data-umfang="andere"]');
+  await setze('#e-umfang-andere', '04:00');
+  pruefe((await text('.ergebnis-haupt')) === '= 4:00 h', `Ferien von Hand: 4:00 h (${await text('.ergebnis-haupt')})`);
   await klick('#form-eintrag button[type=submit]');
   await sleep(300);
-  pruefe(await evaluate(`!!document.querySelector('.eintrag-ferien')`), 'Ferien-Tag wird angezeigt');
+  const ferienKarte = await evaluate(`document.querySelector('.eintrag-ferien')?.textContent.replace(/\\s+/g, ' ').trim() ?? ''`);
+  pruefe(ferienKarte === 'Ferien 4:00 h', `Ferien-Tag mit 4:00 h angezeigt (${ferienKarte})`);
   await shot(`${ordner}/06f-woche-krank-ferien.png`);
+
+  // Marco (Stundenlohn): Krank ist automatisch «keine Stunden», kein Wochensoll
+  await evaluate(`[...document.querySelectorAll('.person-tab')].find((t) => t.textContent.includes('Marco')).click()`);
+  await sleep(200);
+  pruefe((await text('.stand-text'))?.startsWith('Stundenlohn – kein Wochensoll'), `Marco: Wochenstand ohne Soll (${await text('.stand-text')})`);
+  await evaluate(`document.querySelector('.tag-leer[data-neu]').click()`);
+  await sleep(300);
+  await evaluate(`document.querySelector('[data-art="krank"]').click()`);
+  pruefe((await evaluate(`document.querySelector('[data-umfang="null"]').getAttribute('aria-pressed')`)) === 'true', 'Marco: «Keine Stunden» ist automatisch gewählt');
+  pruefe((await text('.ergebnis-haupt')) === '= 0:00 h (keine Stunden)', `Marco: 0:00 h (${await text('.ergebnis-haupt')})`);
+  await shot(`${ordner}/06g-stundenlohn-krank.png`);
+  await klick('#form-eintrag button[type=submit]');
+  await sleep(300);
+  const marcoKarte = await evaluate(`document.querySelector('.eintrag-krank')?.textContent.replace(/\\s+/g, ' ').trim() ?? ''`);
+  pruefe(marcoKarte === 'Krank keine Stunden', `Marco: Tageskarte «Krank · keine Stunden» (${marcoKarte})`);
+  await evaluate(`[...document.querySelectorAll('.person-tab')].find((t) => t.textContent.includes('Lena')).click()`);
+  await sleep(200);
 
   await evaluate(`document.querySelector('.eintrag-krank').click()`);
   await sleep(300);
@@ -278,13 +301,21 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   await klick('#btn-senden');
   await sleep(500);
   const textMail = decodeURIComponent(await evaluate(`document.getElementById('s-mailto').href`));
-  pruefe(textMail.includes('Krank (ganzer Tag)') && textMail.includes('Ferien (ganzer Tag)'), 'Text-Mail: Krank und Ferien als ganzer Tag');
+  pruefe(
+    textMail.includes('Krank (ganzer Tag)') && textMail.includes('Ferien\r\n= 4:00 h') && textMail.includes('Krank (keine Stunden)\r\n= 0:00 h'),
+    'Text-Mail: Krank ganzer Tag, Ferien 4:00 h, Marco krank ohne Stunden',
+  );
   await evaluate(`window.__fenster = []; window.open = (u) => { window.__fenster.push(u); return {}; };`);
   await klick('#s-ansehen');
   const pdfKrank64 = await evaluate(`(async () => { const b = new Uint8Array(await (await fetch(window.__fenster[0])).arrayBuffer());
     let s = ''; for (const x of b) s += String.fromCharCode(x); return btoa(s); })()`);
   const pdfKrank = Buffer.from(pdfKrank64, 'base64').toString('latin1');
-  pruefe(pdfKrank.includes(String.raw`(Krank \(ganzer Tag\))`) && pdfKrank.includes(String.raw`(Ferien \(ganzer Tag\))`), 'PDF: Krank und Ferien als ganzer Tag');
+  pruefe(
+    pdfKrank.includes(String.raw`(Krank \(ganzer Tag\))`) &&
+      pdfKrank.includes(String.raw`(Krank \(keine Stunden\))`) &&
+      pdfKrank.includes(String.raw`(MITARBEITER/IN \267 STUNDENLOHN)`),
+    'PDF: Krank ganzer Tag, Marco «keine Stunden» und «Stundenlohn» im Kopf',
+  );
   await klick('#dlg-senden [data-schliessen]');
 
   // 7. Woche wechseln

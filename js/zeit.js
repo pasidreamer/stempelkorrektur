@@ -151,6 +151,17 @@ function tagessoll(wochensollStunden) {
   return Math.round((wochensollStunden * 60) / 5);
 }
 
+// Wie Krank/Ferien in Liste, Mail und PDF heissen:
+// «Krank (ganzer Tag)», «Krank (keine Stunden)» (Stundenlohn: nichts zu verrechnen) oder nur «Krank»,
+// wenn von Hand eine andere Zeit gewählt wurde. Einträge ohne «ganzerTag» (vor dem 30.09.2026)
+// waren immer ganze Tage.
+function abwesenheitText(eintrag) {
+  const name = ABWESENHEITEN[eintrag.art];
+  if (!eintrag.minuten) return `${name} (keine Stunden)`;
+  if (eintrag.ganzerTag !== false) return `${name} (ganzer Tag)`;
+  return name;
+}
+
 // Wie berechne(), kennt aber auch Krank/Ferien. Deren Minuten stehen im Eintrag selbst,
 // damit eine spätere Änderung des Wochensolls alte Wochen nicht verändert.
 function berechneEintrag(eintrag, nacht) {
@@ -182,6 +193,7 @@ globalThis.Zeit = {
   stundenText,
   ABWESENHEITEN,
   istAbwesenheit,
+  abwesenheitText,
   tagessoll,
   berechneEintrag,
 };

@@ -129,6 +129,17 @@
         </div>
         </div>
 
+        <!-- Nur bei Krank/Ferien: wie viele Stunden zählen (Stundenlohn = keine) -->
+        <div id="e-abwesend" class="feld" hidden>
+          <span class="feld-label" id="e-umfang-label">Stunden für diesen Tag</span>
+          <div id="e-umfang" class="chips" role="group" aria-labelledby="e-umfang-label"></div>
+          <label class="unterfeld" id="e-umfang-andere-feld" hidden>
+            <span class="feld-label leise">Stunden : Minuten</span>
+            <input type="time" id="e-umfang-andere" class="eingabe eingabe-zeit" value="04:00">
+          </label>
+          <p id="e-umfang-hinweis" class="hinweis"></p>
+        </div>
+
         <label class="feld">
           <span class="feld-label">Bemerkung <span class="leise">(freiwillig)</span></span>
           <input type="text" id="e-bemerkung" class="eingabe" placeholder="z. B. Baustelle oder Auftrag" autocomplete="off">

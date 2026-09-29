@@ -167,10 +167,11 @@ function zeichneTage() {
       .map((e) => {
         if (zeit.istAbwesenheit(e)) {
           const name = zeit.ABWESENHEITEN[e.art];
+          const umfang = !e.minuten ? 'keine Stunden' : e.ganzerTag !== false ? 'ganzer Tag' : zeit.dauer(e.minuten);
           return `
           <button type="button" class="eintrag eintrag-${e.art}" data-id="${e.id}" aria-label="${name} bearbeiten">
             <div class="eintrag-zeit">${name}</div>
-            <div class="eintrag-info">ganzer Tag${amTag.length > 1 ? ` · ${zeit.dauer(e.minuten)}` : ''}${e.bemerkung ? ` · ${esc(e.bemerkung)}` : ''}</div>
+            <div class="eintrag-info">${umfang}${amTag.length > 1 && e.ganzerTag !== false && e.minuten ? ` · ${zeit.dauer(e.minuten)}` : ''}${e.bemerkung ? ` · ${esc(e.bemerkung)}` : ''}</div>
           </button>`;
         }
         const r = zeit.berechne(e, nacht);
@@ -206,6 +207,19 @@ function standKarte(eigene) {
   const soll = Math.round((einstellungen().wochensoll || 0) * 60);
   if (soll <= 0) return '';
   const { netto, zuschlag } = summe(eigene);
+
+  // Stundenlohn: es gibt kein Wochensoll, nur die Summe der Stunden zeigen
+  if (person(ansicht.personId)?.stundenlohn) {
+    return `
+    <section class="stand" aria-label="Wochenstunden">
+      <div class="stand-kopf">
+        <span>Stunden diese Woche</span>
+        <strong>${zeit.dauer(netto + zuschlag)}</strong>
+      </div>
+      <div class="stand-text"><span>Stundenlohn – kein Wochensoll${zuschlag ? ` · inkl. ${zeit.dauer(zuschlag)} Nachtzuschlag` : ''}</span></div>
+    </section>`;
+  }
+
   const ist = netto + zuschlag;
   const diff = ist - soll;
   const breite = Math.min(100, Math.round((ist / soll) * 100));
@@ -255,6 +269,9 @@ const ARTEN = [
 const editor = {
   id: null, // gesetzt beim Bearbeiten
   art: 'arbeit', // arbeit | krank | ferien
+  // Stunden bei Krank/Ferien: null = automatisch je Person (ganzer Tag, bei Stundenlohn keine),
+  // sonst von Hand: 'ganz' | 'null' | 'andere'
+  umfang: null,
   datum: null,
   besitzer: null, // Person des bearbeiteten Eintrags (kann nicht abgewählt werden)
   personen: new Set(),
@@ -276,6 +293,12 @@ function oeffneEditor({ datum, id }) {
 
   editor.id = e?.id ?? null;
   editor.art = e?.art ?? 'arbeit';
+  editor.umfang = null;
+  $('#e-umfang-andere').value = '04:00';
+  if (e && zeit.istAbwesenheit(e)) {
+    editor.umfang = !e.minuten ? 'null' : e.ganzerTag !== false ? 'ganz' : 'andere';
+    if (editor.umfang === 'andere') $('#e-umfang-andere').value = alsUhrzeit(e.minuten);
+  }
   editor.datum = werte.datum;
   editor.besitzer = e?.personId ?? null;
 
@@ -311,11 +334,50 @@ function chip({ text, gedrueckt, daten, gesperrt = false }) {
   return `<button type="button" class="chip" aria-pressed="${gedrueckt}" ${daten} ${gesperrt ? 'disabled' : ''}>${symbol('haken')}${esc(text)}</button>`;
 }
 
+// 258 → «04:18» (für das Stunden-Feld bei Krank/Ferien)
+function alsUhrzeit(min) {
+  return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+}
+
+// Stunden, die ein Krank-/Ferientag für diese Person zählt
+function abwesenheitFuer(pid) {
+  const umfang = editor.umfang ?? (person(pid)?.stundenlohn ? 'null' : 'ganz');
+  if (umfang === 'null') return { minuten: 0, ganzerTag: false };
+  if (umfang === 'andere') return { minuten: zeit.minuten($('#e-umfang-andere').value || '00:00'), ganzerTag: false };
+  return { minuten: zeit.tagessoll(einstellungen().wochensoll), ganzerTag: true };
+}
+
+function zeichneAbwesenheit() {
+  const pids = [...editor.personen];
+  const automatisch = pids.map((pid) => (person(pid)?.stundenlohn ? 'null' : 'ganz'));
+  const einheitlich = automatisch.every((u) => u === automatisch[0]) ? (automatisch[0] ?? 'ganz') : null;
+  const gezeigt = editor.umfang ?? einheitlich;
+  const ganzerTag = zeit.dauer(zeit.tagessoll(einstellungen().wochensoll));
+
+  $('#e-umfang').innerHTML = [
+    chip({ text: `Ganzer Tag (${ganzerTag})`, gedrueckt: gezeigt === 'ganz', daten: 'data-umfang="ganz"' }),
+    chip({ text: 'Keine Stunden (0 h)', gedrueckt: gezeigt === 'null', daten: 'data-umfang="null"' }),
+    chip({ text: 'Andere …', gedrueckt: gezeigt === 'andere', daten: 'data-umfang="andere"' }),
+  ].join('');
+  $('#e-umfang-andere-feld').hidden = editor.umfang !== 'andere';
+
+  const stundenlohnNamen = pids.filter((pid) => person(pid)?.stundenlohn).map((pid) => person(pid).name);
+  let hinweis = '';
+  if (editor.umfang === null && einheitlich === null) {
+    hinweis = `Automatisch: ganzer Tag, bei Stundenlohn (${stundenlohnNamen.join(', ')}) keine Stunden.`;
+  } else if (gezeigt === 'null') {
+    hinweis = 'Nichts zu verrechnen – im PDF steht «keine Stunden».';
+  }
+  $('#e-umfang-hinweis').textContent = hinweis;
+  $('#e-umfang-hinweis').hidden = !hinweis;
+}
+
 function zeichneEditor() {
   $('#e-art').innerHTML = ARTEN.map(
     ([art, name]) => `<button type="button" class="art-knopf art-${art}" data-art="${art}" aria-pressed="${editor.art === art}">${name}</button>`,
   ).join('');
   $('#e-arbeit').hidden = editor.art !== 'arbeit';
+  $('#e-abwesend').hidden = editor.art === 'arbeit';
 
   const personen = einstellungen().personen;
   $('#e-personen').innerHTML = personen
@@ -341,16 +403,17 @@ function zeichneEditor() {
       .join('') + chip({ text: 'Anderer …', gedrueckt: editor.grundAnderes, daten: 'data-grund-anderes' });
   $('#e-grund-anderes-feld').hidden = !editor.grundAnderes;
 
+  if (editor.art !== 'arbeit') zeichneAbwesenheit();
   zeichneErgebnis();
 }
 
 function editorWerte() {
   if (editor.art !== 'arbeit') {
-    // Krank/Ferien: ganzer Tag = Wochensoll ÷ 5; die Minuten werden im Eintrag gespeichert
+    // Krank/Ferien: keine Zeiten. Die Minuten kommen je Person dazu (abwesenheitFuer)
+    // und werden im Eintrag gespeichert.
     return {
       datum: editor.datum,
       art: editor.art,
-      minuten: zeit.tagessoll(einstellungen().wochensoll),
       von: '',
       bis: '',
       pause: 0,
@@ -377,8 +440,17 @@ function zeichneErgebnis() {
 
   if (w.art) {
     hinweis.hidden = true;
-    box.innerHTML = `<div class="ergebnis-haupt">= ${zeit.dauer(w.minuten)} (ganzer Tag)</div>
-      <div class="ergebnis-info">Wochensoll ${einstellungen().wochensoll} h ÷ 5 Tage</div>`;
+    const pids = editor.personen.size ? [...editor.personen] : [ansicht.personId];
+    const varianten = [...new Map(pids.map((pid) => abwesenheitFuer(pid)).map((a) => [a.minuten, a])).values()];
+    if (varianten.length > 1) {
+      box.innerHTML = `<div class="ergebnis-haupt">= ${varianten.map((a) => zeit.dauer(a.minuten)).join(' bzw. ')}</div>
+        <div class="ergebnis-info">je nach Person (Stundenlohn: keine Stunden)</div>`;
+      return;
+    }
+    const a = varianten[0];
+    const zusatz = a.minuten === 0 ? ' (keine Stunden)' : a.ganzerTag ? ' (ganzer Tag)' : '';
+    const info = a.minuten === 0 ? 'nichts zu verrechnen' : a.ganzerTag ? `Wochensoll ${einstellungen().wochensoll} h ÷ 5 Tage` : 'von Hand gewählt';
+    box.innerHTML = `<div class="ergebnis-haupt">= ${zeit.dauer(a.minuten)}${zusatz}</div><div class="ergebnis-info">${info}</div>`;
     return;
   }
 
@@ -412,6 +484,7 @@ function speichereEintrag(ereignis) {
 
   const fehler =
     (editor.personen.size === 0 && 'Bitte mindestens eine Person wählen.') ||
+    (w.art && editor.umfang === 'andere' && !$('#e-umfang-andere').value && 'Bitte die Stunden eingeben.') ||
     (!w.art && (zeit.pruefe(w) || (!w.grund && 'Bitte einen Grund antippen.')));
   if (fehler) {
     $('#e-fehler').textContent = fehler;
@@ -427,13 +500,14 @@ function speichereEintrag(ereignis) {
     const e = zustand.eintraege.find((x) => x.id === editor.id);
     delete e.art; // falls von Krank/Ferien auf Arbeit umgestellt wurde
     delete e.minuten;
-    Object.assign(e, w);
+    delete e.ganzerTag;
+    Object.assign(e, w, w.art ? abwesenheitFuer(e.personId) : {});
     anzahl = 1;
   }
   for (const pid of editor.personen) {
     if (pid === editor.besitzer) continue;
     if (zustand.eintraege.some((e) => gleich(e, pid))) continue; // nicht doppelt anlegen
-    zustand.eintraege.push({ id: neueId(), personId: pid, ...w });
+    zustand.eintraege.push({ id: neueId(), personId: pid, ...w, ...(w.art ? abwesenheitFuer(pid) : {}) });
     anzahl++;
   }
 
@@ -669,6 +743,10 @@ function zeichneEinstellungsListen() {
           <input type="text" class="eingabe" data-vorgesetzter-index="${i}" value="${esc(p.vorgesetzter ?? '')}"
             placeholder="${i === 0 ? 'Name deines Chefs' : esc(entwurf.personen[0]?.name || 'Dein Name')}" autocomplete="off">
         </label>
+        <label class="person-stundenlohn">
+          <input type="checkbox" data-stundenlohn-index="${i}" ${p.stundenlohn ? 'checked' : ''}>
+          <span>Stundenlohn <span class="leise">– bei Krank/Ferien keine Stunden, kein Wochensoll</span></span>
+        </label>
       </div>`,
     )
     .join('');
@@ -687,7 +765,7 @@ function zeichneEinstellungsListen() {
 function speichereEinstellungen(ereignis) {
   ereignis.preventDefault();
   const personen = entwurf.personen
-    .map((p) => ({ ...p, name: p.name.trim(), vorgesetzter: (p.vorgesetzter ?? '').trim() }))
+    .map((p) => ({ ...p, name: p.name.trim(), vorgesetzter: (p.vorgesetzter ?? '').trim(), stundenlohn: Boolean(p.stundenlohn) }))
     .filter((p) => p.name);
   const gruende = [...new Set(entwurf.gruende.map((g) => g.trim()).filter(Boolean))];
   const empfaenger = $('#st-empfaenger').value.trim();
@@ -761,7 +839,7 @@ for (const dlg of document.querySelectorAll('dialog')) {
 // Eintrag-Blatt
 $('#form-eintrag').addEventListener('submit', speichereEintrag);
 $('#e-loeschen').addEventListener('click', loescheEintrag);
-for (const feld of ['#e-von', '#e-bis', '#e-pause-andere', '#e-grund-anderes']) {
+for (const feld of ['#e-von', '#e-bis', '#e-pause-andere', '#e-grund-anderes', '#e-umfang-andere']) {
   $(feld).addEventListener('input', () => {
     $('#e-fehler').textContent = '';
     zeichneErgebnis();
@@ -774,6 +852,15 @@ $('#e-personen').addEventListener('click', (ereignis) => {
   const pid = c.dataset.person;
   editor.personen.has(pid) ? editor.personen.delete(pid) : editor.personen.add(pid);
   zeichneEditor();
+});
+
+$('#e-umfang').addEventListener('click', (ereignis) => {
+  const knopf = ereignis.target.closest('[data-umfang]');
+  if (!knopf) return;
+  editor.umfang = knopf.dataset.umfang;
+  $('#e-fehler').textContent = '';
+  zeichneEditor();
+  if (editor.umfang === 'andere') $('#e-umfang-andere').focus();
 });
 
 $('#e-art').addEventListener('click', (ereignis) => {
@@ -846,6 +933,10 @@ $('#st-personen').addEventListener('input', (ereignis) => {
   const { personIndex, vorgesetzterIndex } = ereignis.target.dataset;
   if (personIndex !== undefined) entwurf.personen[personIndex].name = ereignis.target.value;
   if (vorgesetzterIndex !== undefined) entwurf.personen[vorgesetzterIndex].vorgesetzter = ereignis.target.value;
+});
+$('#st-personen').addEventListener('change', (ereignis) => {
+  const i = ereignis.target.dataset.stundenlohnIndex;
+  if (i !== undefined) entwurf.personen[i].stundenlohn = ereignis.target.checked;
 });
 $('#st-gruende').addEventListener('input', (ereignis) => {
   const i = ereignis.target.dataset.grundIndex;
