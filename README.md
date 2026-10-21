@@ -51,6 +51,15 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
     mitgeben. Klappt das Teilen nicht, speichert die App das PDF und zeigt den Grund an.
     (Bis 29.09. abends kopierte die App vorher die Adresse in die Zwischenablage. Auf dem Samsung
     kam danach die Auswahl nicht mehr, deshalb ist das wieder entfernt.)
+  - **Unterschrift (seit 21.10.2026):** In den Einstellungen hat jede Person «Unterschreiben»: mit
+    dem Finger einmal unterschreiben, «Unterschrift speichern», dann unten «Speichern». Ab dann steht
+    im PDF bei «Datum, Visum Mitarbeiter/in» automatisch das Datum des PDFs und die Unterschrift –
+    kein Ausdrucken mehr. Fehlt sie, zeigt das Senden-Blatt «noch keine Unterschrift» mit einem
+    Knopf «Unterschreiben» (wird auch gleich gespeichert). Steht bei einer Person als
+    Vorgesetzte/r jemand, der in der App ist und unterschrieben hat (z. B. du bei deinen Leuten),
+    kommt dessen Unterschrift auch bei «Visum Vorgesetzte/r». Gespeichert werden die Striche als
+    Punktlisten (`js/unterschrift.js`), im PDF zeichnet `pdf.js` sie als Linien nach: klein und
+    scharf, kein Bild nötig. Die Unterschrift liegt wie alles andere nur auf dem Handy.
   - **Am PC** wird das PDF im Download-Ordner gespeichert und die Mail öffnet sich mit Empfänger,
     Betreff und Text. Das PDF zieht man dann in die Mail.
   - **Ohne PDF:** Unter «Lieber ohne PDF, nur als Text-Mail» gibt es die alte Text-Mail mit
@@ -119,10 +128,11 @@ statt es anzuzeigen. Das Teilen mit Chrome auf dem echten Samsung ist noch zu be
 | `js/mail.js` | Betreff, Begleittext zum PDF, Text-Mail und `mailto:`-Link |
 | `js/pdf.js` | Schreibt PDF-Dateien ohne fremde Bibliothek (Helvetica, Linien, Flächen, Umlaute) |
 | `js/blatt.js` | Gestaltet das Stempel-Blatt: eine A4-Seite pro Person |
+| `js/unterschrift.js` | Zeichenfläche für die Unterschrift (Finger/Maus) und kleines Vorschaubild |
 | `sw.js` | «Service Worker»: legt die App-Dateien auf dem Handy ab, damit sie offline startet |
 | `manifest.webmanifest`, `icons/` | Name und Symbol für den Home-Bildschirm |
 | `tests/zeit.test.mjs` | 13 Rechentests |
-| `tests/pdf.test.mjs` | 6 PDF-Tests (gültiger Aufbau, Umlaute, Breiten, Dateiname, Vorgesetzte/r und Unterschriften, übervolle Woche); legt `tests/ausgabe/probe.pdf` und `volle-woche.pdf` ab |
+| `tests/pdf.test.mjs` | 6 PDF-Tests (gültiger Aufbau, Umlaute, Breiten, Dateiname, Vorgesetzte/r und Unterschriften, übervolle Woche, gespeicherte Unterschrift mit Datum bzw. leere Felder ohne); legt `tests/ausgabe/probe.pdf` und `volle-woche.pdf` ab |
 | `tests/mail.test.mjs` | 3 Tests: Mailtext mit Krank als ganzer Tag, mit «keine Stunden» und von Hand gewählter Zeit; Fingerabdruck normaler Einträge unverändert |
 | `tests/speicher.test.mjs` | 2 Tests: ältere gespeicherte Daten (ohne Vorgesetzte/n) werden richtig ergänzt |
 | `tests/ablauf.mjs`, `tests/cdp.mjs` | Spielt die ganze App in einem unsichtbaren Edge in Handygrösse durch |

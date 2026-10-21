@@ -110,6 +110,28 @@ class Seite {
   flaeche(x, y, b, h, f) {
     this.befehle.push(`${farbe(f)} rg ${zahl(x)} ${zahl(A4.hoehe - y - h)} ${zahl(b)} ${zahl(h)} re f`);
   }
+  // Handgezeichnete Striche (z. B. eine Unterschrift), eingepasst in das Feld x/y/b/h.
+  // unterschrift = { striche: [[x1, y1, x2, y2, …], …] } in Zeichenflächen-Pixeln, y von oben.
+  // Das Seitenverhältnis bleibt, die Zeichnung steht links im Feld und unten auf der Linie.
+  striche(unterschrift, x, y, b, h, { farbe: f = [0.05, 0.15, 0.45], dicke = 1.1 } = {}) {
+    const punkte = unterschrift.striche.flat();
+    const xs = punkte.filter((_, i) => i % 2 === 0);
+    const ys = punkte.filter((_, i) => i % 2 === 1);
+    if (xs.length === 0) return;
+    const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    const massstab = Math.min(b / Math.max(maxX - minX, 1), h / Math.max(maxY - minY, 1));
+    const px = (wert) => zahl(x + (wert - minX) * massstab);
+    const py = (wert) => zahl(A4.hoehe - (y + h - (maxY - wert) * massstab));
+    const pfade = unterschrift.striche.map((s) => {
+      // Ein einzelner Punkt (nur angetippt) wird ein winziger Strich, sonst wäre er unsichtbar
+      const p = s.length === 2 ? [...s, s[0] + 0.5, s[1]] : s;
+      let pfad = `${px(p[0])} ${py(p[1])} m`;
+      for (let i = 2; i < p.length; i += 2) pfad += ` ${px(p[i])} ${py(p[i + 1])} l`;
+      return pfad;
+    });
+    // 1 J / 1 j: runde Enden und Ecken, damit es wie mit einem Stift aussieht
+    this.befehle.push(`q ${farbe(f)} RG ${zahl(dicke)} w 1 J 1 j ${pfade.join(' ')} S Q`);
+  }
 }
 
 class Dokument {

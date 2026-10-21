@@ -121,3 +121,30 @@ test('Stundenlohn: Kopf zeigt es an, Krank mit keinen Stunden = 0:00 h und Erkl�
   assert.ok(text.includes(String.raw`(Krank/Ferien \253keine Stunden\273 = nichts zu verrechnen \(Stundenlohn\).)`), 'Erklärung unten');
   writeFileSync('tests/ausgabe/stundenlohn-krank.pdf', bytes);
 });
+
+test('Gespeicherte Unterschrift: mit Datum bei Visum Mitarbeiter/in, bei Mitarbeitenden auch als Vorgesetzte/r', () => {
+  // eine kleine «Unterschrift» aus zwei Strichen und einem Punkt, wie sie die Zeichenfläche speichert
+  const unterschrift = { b: 340, h: 190, striche: [[20, 140, 60, 80, 100, 150, 140, 90], [160, 120, 220, 118], [240, 130]] };
+  const mitUnterschrift = [{ ...personen[0], unterschrift }, personen[1]];
+  const bytes = Blatt.erstellen({
+    montag: '2026-09-21', personen: mitUnterschrift, eintraege, einstellungen: { ...einstellungen, personen: mitUnterschrift },
+    erstelltAm: new Date(2026, 8, 29, 8, 15),
+  });
+  const text = Buffer.from(bytes).toString('latin1');
+  const zeichnungen = [...text.matchAll(/q [\d. ]+ RG [\d.]+ w 1 J 1 j (.*?) S Q/g)];
+  assert.equal(zeichnungen.length, 2, 'Lenas Blatt (als Mitarbeiterin) und Jürgs Blatt (Lena als Vorgesetzte)');
+  assert.equal(zeichnungen[0][1].split(' m').length - 1, 3, 'alle drei Striche, auch der Punkt');
+  assert.equal(text.split('(29.09.2026)').length - 1, 2, 'Datum steht neben jeder Unterschrift');
+  // Die Zeichnung bleibt im Feld: zwischen den Rändern und über der Unterschriftslinie
+  for (const [, pfad] of zeichnungen) {
+    const zahlen = pfad.match(/[\d.]+/g).map(Number);
+    zahlen.forEach((z, i) => assert.ok(i % 2 === 0 ? z >= 42 && z <= 553 : z > 20 && z < 841, `Koordinate ${z}`));
+  }
+  writeFileSync('tests/ausgabe/unterschrift.pdf', bytes);
+});
+
+test('Ohne gespeicherte Unterschrift bleiben die Felder leer (wie bisher)', () => {
+  const text = Buffer.from(erzeugen()).toString('latin1');
+  assert.ok(!text.includes(' 1 J 1 j '), 'keine Zeichnung');
+  assert.ok(!text.includes('(29.09.2026)'), 'kein Datum im Feld');
+});

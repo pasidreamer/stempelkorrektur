@@ -73,7 +73,7 @@ function fuss(seite, erstelltAm, nummer, total) {
 }
 
 // Baut die Seiten einer Person. Gibt die Seiten zurück (meist eine).
-function personSeiten(dok, { person, montag, eintraege, einstellungen }) {
+function personSeiten(dok, { person, montag, eintraege, einstellungen, alle, erstelltAm }) {
   const nacht = einstellungen.nacht;
   const seiten = [];
   let seite = dok.seite();
@@ -174,26 +174,36 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen }) {
     seiten.push(seite);
     u = kopf(seite, { person, montag, fortsetzung: true, ohneTabelle: true }) + 30;
   }
-  unterschriften(seite, u);
+  // Gespeicherte Unterschriften (Einstellungen) kommen mit dem Datum direkt aufs Blatt:
+  // die eigene bei «Visum Mitarbeiter/in», bei «Visum Vorgesetzte/r» die der Person, die dort
+  // eingetragen ist – sofern sie in der App ist und unterschrieben hat (z. B. du bei deinen Leuten).
+  const chef = alle.find((p) => p.name.trim() && p.name.trim() === person.vorgesetzter?.trim());
+  unterschriften(seite, u, { mitarbeiter: person.unterschrift, vorgesetzter: chef?.unterschrift, datum: kurzDatum(Zeit.alsText(erstelltAm), true) });
   return seiten;
 }
 
-function unterschriften(seite, y) {
+function unterschriften(seite, y, { mitarbeiter, vorgesetzter, datum }) {
   const halb = BREITE / 2;
-  const feld = (x, yLinie, breite, text) => {
+  const feld = (x, yLinie, breite, text, unterschrift) => {
+    if (unterschrift?.striche?.length) {
+      seite.text(x, yLinie - 4, datum, { groesse: 9.5, farbe: TEXT });
+      seite.striche(unterschrift, x + 62, yLinie - 36, breite - 66, 34);
+    }
     seite.linie(x, yLinie, x + breite, yLinie, { farbe: TEXT, dicke: 0.6 });
     seite.text(x, yLinie + 12, text, { groesse: 7.5, farbe: GRAU });
   };
-  feld(RAND, y + 28, halb - 18, 'Datum, Visum Mitarbeiter/in');
-  feld(RAND + halb, y + 28, halb, 'Datum, Visum Vorgesetzte/r');
+  feld(RAND, y + 28, halb - 18, 'Datum, Visum Mitarbeiter/in', mitarbeiter);
+  feld(RAND + halb, y + 28, halb, 'Datum, Visum Vorgesetzte/r', vorgesetzter);
   feld(RAND, y + 72, halb - 18, 'Erfassungsdatum & Visum Personalbüro');
 }
 
-// personen: [{ id, name, vorgesetzter }] – je eine Seite (oder mehr); eintraege: alle Einträge der Woche
+// personen: [{ id, name, vorgesetzter, unterschrift }] – je eine Seite (oder mehr); eintraege: alle Einträge der Woche.
+// einstellungen.personen (alle, nicht nur die gewählten) braucht es für die Unterschrift der/des Vorgesetzten.
 function erstellen({ montag, personen, eintraege, einstellungen, erstelltAm = new Date() }) {
   const dok = PDF.neuesDokument();
+  const alle = einstellungen.personen ?? personen;
   const alleSeiten = personen.flatMap((person) =>
-    personSeiten(dok, { person, montag, eintraege: eintraege.filter((e) => e.personId === person.id), einstellungen }),
+    personSeiten(dok, { person, montag, eintraege: eintraege.filter((e) => e.personId === person.id), einstellungen, alle, erstelltAm }),
   );
   alleSeiten.forEach((s, i) => fuss(s, erstelltAm, i + 1, alleSeiten.length));
   const { woche, jahr } = kalenderwoche(montag);

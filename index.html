@@ -22,6 +22,7 @@
   <script defer src="js/mail.js"></script>
   <script defer src="js/pdf.js"></script>
   <script defer src="js/blatt.js"></script>
+  <script defer src="js/unterschrift.js"></script>
   <script defer src="js/app.js"></script>
 </head>
 <body>
@@ -182,6 +183,7 @@
         <div class="feld">
           <span class="feld-label">Inhalt <span class="leise">(eine Seite pro Person)</span></span>
           <ul id="s-uebersicht" class="uebersicht"></ul>
+          <div id="s-unterschriften" class="unterschrift-status"></div>
           <button type="button" id="s-ansehen" class="btn btn-leise">
             <svg><use href="#i-dokument"/></svg> PDF ansehen
           </button>
@@ -295,6 +297,27 @@
         <button type="submit" class="btn btn-primaer btn-breit">Speichern</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Unterschrift zeichnen (mit dem Finger); wird gespeichert und kommt automatisch ins PDF -->
+  <dialog id="dlg-unterschrift" class="blatt" aria-labelledby="u-titel">
+    <div class="blatt-form">
+      <div class="blatt-kopf">
+        <h2 id="u-titel">Unterschrift</h2>
+        <button type="button" class="icon-btn" data-schliessen aria-label="Schliessen"><svg><use href="#i-x"/></svg></button>
+      </div>
+      <div class="blatt-inhalt">
+        <p class="hinweis">Mit dem Finger auf der Linie unterschreiben. Die Unterschrift bleibt auf diesem Handy gespeichert und kommt ab jetzt mit dem Datum automatisch ins PDF bei «Datum, Visum Mitarbeiter/in».</p>
+        <div class="unterschrift-feld">
+          <canvas id="u-flaeche" aria-label="Feld zum Unterschreiben"></canvas>
+        </div>
+        <button type="button" id="u-neu" class="btn btn-leise"><svg><use href="#i-muell"/></svg> Neu zeichnen</button>
+      </div>
+      <div class="blatt-aktionen blatt-aktionen-stapel">
+        <p id="u-fehler" class="fehler" role="alert"></p>
+        <button type="button" id="u-speichern" class="btn btn-primaer btn-gross">Unterschrift speichern</button>
+      </div>
+    </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

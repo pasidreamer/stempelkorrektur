@@ -3,7 +3,7 @@
 // nach 3 Sekunden ohne Antwort die gespeicherte Kopie nehmen.
 // Nach Änderungen an den Dateien: VERSION um eins erhöhen.
 
-const VERSION = 'stempel-v10';
+const VERSION = 'stempel-v11';
 const DATEIEN = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const DATEIEN = [
   './js/mail.js',
   './js/pdf.js',
   './js/blatt.js',
+  './js/unterschrift.js',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',

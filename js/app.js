@@ -575,6 +575,16 @@ function zeichneSenden() {
   $('#s-pdf-senden').disabled = leer;
   $('#s-ansehen').disabled = leer;
 
+  // Unterschrift je Person: gespeichert = kommt automatisch ins PDF, sonst gleich hier unterschreiben
+  $('#s-unterschriften').innerHTML = personen
+    .map((p) =>
+      Unterschrift.vorhanden(p.unterschrift)
+        ? `<div class="unterschrift-zeile ok">${symbol('haken')}<span>${esc(p.name)}: Unterschrift wird eingesetzt</span>${Unterschrift.svg(p.unterschrift)}</div>`
+        : `<div class="unterschrift-zeile"><span>${esc(p.name)}: noch keine Unterschrift</span>
+             <button type="button" class="btn" data-unterschreiben="${p.id}">Unterschreiben</button></div>`,
+    )
+    .join('');
+
   $('#s-hinweis').textContent = kannPdfTeilen(new File([''], 'probe.pdf', { type: 'application/pdf' }))
     ? 'Im nächsten Schritt dein Mailprogramm wählen (z. B. Outlook). Das PDF ist schon angehängt, den Empfänger trägst du selbst ein.'
     : IST_SAMSUNG_BROWSER
@@ -747,6 +757,17 @@ function zeichneEinstellungsListen() {
           <input type="checkbox" data-stundenlohn-index="${i}" ${p.stundenlohn ? 'checked' : ''}>
           <span>Stundenlohn <span class="leise">– bei Krank/Ferien keine Stunden, kein Wochensoll</span></span>
         </label>
+        <div class="person-unterschrift">
+          <span>Unterschrift <span class="leise">– kommt mit Datum ins PDF</span></span>
+          ${
+            Unterschrift.vorhanden(p.unterschrift)
+              ? `<div class="unterschrift-zeile">${Unterschrift.svg(p.unterschrift)}
+                   <button type="button" class="btn" data-unterschrift-index="${i}">Ändern</button>
+                   <button type="button" class="icon-btn" data-unterschrift-weg="${i}" aria-label="Unterschrift entfernen">${symbol('muell')}</button>
+                 </div>`
+              : `<button type="button" class="btn btn-leise" data-unterschrift-index="${i}">Unterschreiben</button>`
+          }
+        </div>
       </div>`,
     )
     .join('');
@@ -800,6 +821,28 @@ function speichereEinstellungen(ereignis) {
   $('#dlg-einstellungen').close();
   speichereUndZeichne();
   zeigeToast('Einstellungen gespeichert');
+}
+
+// ---------- Unterschrift-Blatt ----------
+
+const flaeche = Unterschrift.zeichenflaeche($('#u-flaeche'));
+let unterschriftZiel = null; // { name, vorhanden, speichern(daten) }
+
+function oeffneUnterschrift(ziel) {
+  unterschriftZiel = ziel;
+  $('#u-titel').textContent = ziel.name ? `Unterschrift ${ziel.name}` : 'Unterschrift';
+  $('#u-fehler').textContent = '';
+  $('#dlg-unterschrift').showModal();
+  flaeche.start(ziel.vorhanden); // erst jetzt hat die Fläche ihre Grösse
+}
+
+function speichereUnterschrift() {
+  if (flaeche.istLeer()) {
+    $('#u-fehler').textContent = 'Bitte zuerst im Feld unterschreiben.';
+    return;
+  }
+  unterschriftZiel.speichern(flaeche.daten());
+  $('#dlg-unterschrift').close();
 }
 
 // ---------- Ereignisse ----------
@@ -911,7 +954,27 @@ $('#s-personen').addEventListener('click', (ereignis) => {
 
 $('#dlg-senden').addEventListener('click', (ereignis) => {
   if (ereignis.target.closest('[data-aktion="einstellungen"]')) oeffneEinstellungen();
+  const knopf = ereignis.target.closest('[data-unterschreiben]');
+  if (knopf) {
+    const p = person(knopf.dataset.unterschreiben);
+    oeffneUnterschrift({
+      name: p.name,
+      speichern(daten) {
+        p.unterschrift = daten; // gilt ab jetzt für jedes PDF
+        speichern(zustand);
+        zeichneSenden();
+        zeigeToast('Unterschrift gespeichert');
+      },
+    });
+  }
 });
+
+// Unterschrift-Blatt
+$('#u-neu').addEventListener('click', () => {
+  flaeche.leeren();
+  $('#u-fehler').textContent = '';
+});
+$('#u-speichern').addEventListener('click', speichereUnterschrift);
 
 $('#s-mailto').addEventListener('click', (ereignis) => {
   if ($('#s-mailto').getAttribute('aria-disabled') === 'true') {
@@ -944,6 +1007,26 @@ $('#st-gruende').addEventListener('input', (ereignis) => {
 });
 
 $('#st-personen').addEventListener('click', (ereignis) => {
+  const zeichnen = ereignis.target.closest('[data-unterschrift-index]');
+  if (zeichnen) {
+    const p = entwurf.personen[zeichnen.dataset.unterschriftIndex];
+    // Landet im Entwurf; gespeichert wird mit «Speichern» unten, wie alles in den Einstellungen
+    oeffneUnterschrift({
+      name: p.name.trim(),
+      vorhanden: p.unterschrift,
+      speichern(daten) {
+        p.unterschrift = daten;
+        zeichneEinstellungsListen();
+      },
+    });
+    return;
+  }
+  const weg = ereignis.target.closest('[data-unterschrift-weg]');
+  if (weg) {
+    delete entwurf.personen[weg.dataset.unterschriftWeg].unterschrift;
+    zeichneEinstellungsListen();
+    return;
+  }
   const knopf = ereignis.target.closest('[data-person-weg]');
   if (!knopf) return;
   const p = entwurf.personen[knopf.dataset.personWeg];
