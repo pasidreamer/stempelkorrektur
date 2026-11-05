@@ -32,7 +32,7 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
     Sind bei «Gilt für» gemischte Personen gewählt, bekommt jede automatisch ihren Wert.
 - **Über Mitternacht:** Ist «Bis» früher als «Von», endet die Arbeit am Folgetag
   (z. B. 23:00–04:00).
-- **Nachtzuschlag:** Standard 22:00–05:00 mit 25 % Zuschlag, einstellbar. Die Pause wird anteilig
+- **Nachtzuschlag:** Standard 23:00–06:00 mit 25 % Zuschlag, einstellbar. Die Pause wird anteilig
   von Tag- und Nachtzeit abgezogen. Anzeige: «5:00 h (+1:15 h Nachtzuschlag)».
 - **Wochenstand:** Oben über den Tagen zeigt eine Karte die eingetragenen Stunden gegenüber dem
   Wochensoll (Standard 43 h, in den Einstellungen unter «Arbeitszeit» änderbar, gilt für alle

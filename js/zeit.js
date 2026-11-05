@@ -92,9 +92,9 @@ function dauer(min) {
 
 // Rechnet einen Eintrag aus.
 // - Ist «Bis» früher als (oder gleich) «Von», geht die Arbeit über Mitternacht.
-// - Nachtzeit = Überschneidung mit dem Nachtfenster (Standard 22:00–05:00).
+// - Nachtzeit = Überschneidung mit dem Nachtfenster (Standard 23:00–06:00).
 // - Die Pause wird anteilig von Tag- und Nachtzeit abgezogen.
-function berechne({ von, bis, pause = 0 }, nacht = { von: '22:00', bis: '05:00', prozent: 25 }) {
+function berechne({ von, bis, pause = 0 }, nacht = { von: '23:00', bis: '06:00', prozent: 25 }) {
   const start = minuten(von);
   let ende = minuten(bis);
   const ueberMitternacht = ende <= start;

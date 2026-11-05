@@ -16,7 +16,7 @@ const STANDARD_EINSTELLUNGEN = {
   absender: '',
   personen: [], // [{ id, name, vorgesetzter }]
   gruende: ['Lüftec', 'ESL', 'Reparatur intern'],
-  nacht: { von: '22:00', bis: '05:00', prozent: 25 },
+  nacht: { von: '23:00', bis: '06:00', prozent: 25 },
   wochensoll: 43, // Stunden pro Woche, nur für die Anzeige «Wochenstand» in der App
 };
 
@@ -43,8 +43,18 @@ function laden() {
     console.warn('Gespeicherte Daten konnten nicht gelesen werden', fehler);
   }
   vorgesetzteErgaenzen(zustand.einstellungen.personen);
+  nachtzeitAnpassen(zustand.einstellungen.nacht);
   aufraeumen(zustand);
   return zustand;
+}
+
+// Bis 05.11.2026 war die Nachtzeit fälschlich 22:00–05:00 voreingestellt, richtig ist 23:00–06:00.
+// Wer den alten Standard noch gespeichert hat, bekommt den neuen; selbst gewählte Zeiten bleiben.
+function nachtzeitAnpassen(nacht) {
+  if (nacht.von === '22:00' && nacht.bis === '05:00') {
+    nacht.von = STANDARD_EINSTELLUNGEN.nacht.von;
+    nacht.bis = STANDARD_EINSTELLUNGEN.nacht.bis;
+  }
 }
 
 // Seit 29.09.2026 hat jede Person ein Feld «vorgesetzter». Ältere Daten kennen es noch nicht:

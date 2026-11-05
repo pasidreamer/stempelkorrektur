@@ -21,6 +21,18 @@ test('Alte Daten ohne «vorgesetzter»: du bist Vorgesetzte/r deiner Leute, dein
   assert.equal(z.einstellungen.nacht.prozent, 25, 'fehlende Einstellungen kommen aus den Standardwerten');
 });
 
+test('Alter Standard 22:00–05:00 wird zu 23:00–06:00, eigene Nachtzeit bleibt', () => {
+  ablage.set('stempelkorrektur.v1', JSON.stringify({
+    einstellungen: { nacht: { von: '22:00', bis: '05:00', prozent: 25 } }, eintraege: [], gesendet: {},
+  }));
+  assert.deepEqual(Speicher.laden().einstellungen.nacht, { von: '23:00', bis: '06:00', prozent: 25 });
+
+  ablage.set('stempelkorrektur.v1', JSON.stringify({
+    einstellungen: { nacht: { von: '21:00', bis: '05:00', prozent: 10 } }, eintraege: [], gesendet: {},
+  }));
+  assert.deepEqual(Speicher.laden().einstellungen.nacht, { von: '21:00', bis: '05:00', prozent: 10 });
+});
+
 test('Leerer Speicher ergibt einen leeren Anfang', () => {
   ablage.clear();
   const z = Speicher.laden();
