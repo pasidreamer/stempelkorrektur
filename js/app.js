@@ -277,9 +277,29 @@ const editor = {
   personen: new Set(),
   pause: 30,
   pauseAndere: false,
-  grund: '',
+  gruende: new Set(), // mehrere Gründe antippbar; gespeichert als «Lüftec, ESL»
   grundAnderes: false,
 };
+
+const GRUND_TRENNER = ', ';
+
+// «Lüftec, ESL, Kunde Meier» → Knöpfe Lüftec und ESL gedrückt, «Kunde Meier» ins Feld «Anderer»
+function grundZerlegen(grund) {
+  const liste = einstellungen().gruende;
+  const teile = (grund ?? '').split(GRUND_TRENNER).map((t) => t.trim()).filter(Boolean);
+  // Ein eigener Grund kann selbst ein Komma enthalten: nur Teile aus der Liste werden zu Knöpfen
+  const bekannt = liste.includes(grund) ? [grund] : teile.filter((t) => liste.includes(t));
+  const rest = liste.includes(grund) ? [] : teile.filter((t) => !liste.includes(t));
+  return { gruende: new Set(bekannt), anderer: rest.join(GRUND_TRENNER) };
+}
+
+// Gewählte Gründe in der Reihenfolge der Einstellungen, der eigene Grund zuletzt
+function grundZusammensetzen() {
+  const teile = einstellungen().gruende.filter((g) => editor.gruende.has(g));
+  const anderer = $('#e-grund-anderes').value.trim();
+  if (editor.grundAnderes && anderer) teile.push(anderer);
+  return teile.join(GRUND_TRENNER);
+}
 
 function oeffneEditor({ datum, id }) {
   const e = id ? zustand.eintraege.find((x) => x.id === id) : null;
@@ -312,15 +332,16 @@ function oeffneEditor({ datum, id }) {
 
   editor.pause = Number(werte.pause) || 0;
   editor.pauseAndere = !PAUSEN.includes(editor.pause);
-  editor.grund = werte.grund ?? '';
-  editor.grundAnderes = Boolean(editor.grund) && !einstellungen().gruende.includes(editor.grund);
+  const { gruende, anderer } = grundZerlegen(werte.grund);
+  editor.gruende = gruende;
+  editor.grundAnderes = Boolean(anderer);
 
   const i = zeit.wochentagIndex(editor.datum);
   $('#e-titel').textContent = `${zeit.WOCHENTAGE[i]}, ${zeit.kurzDatum(editor.datum, true)}`;
   $('#e-von').value = werte.von;
   $('#e-bis').value = werte.bis;
   $('#e-pause-andere').value = editor.pauseAndere ? editor.pause : '';
-  $('#e-grund-anderes').value = editor.grundAnderes ? editor.grund : '';
+  $('#e-grund-anderes').value = anderer;
   $('#e-bemerkung').value = werte.bemerkung ?? '';
   $('#e-loeschen').hidden = !e;
   $('#e-fehler').textContent = '';
@@ -399,7 +420,7 @@ function zeichneEditor() {
 
   $('#e-grund').innerHTML =
     einstellungen()
-      .gruende.map((g) => chip({ text: g, gedrueckt: !editor.grundAnderes && editor.grund === g, daten: `data-grund="${esc(g)}"` }))
+      .gruende.map((g) => chip({ text: g, gedrueckt: editor.gruende.has(g), daten: `data-grund="${esc(g)}"` }))
       .join('') + chip({ text: 'Anderer …', gedrueckt: editor.grundAnderes, daten: 'data-grund-anderes' });
   $('#e-grund-anderes-feld').hidden = !editor.grundAnderes;
 
@@ -422,7 +443,7 @@ function editorWerte() {
     };
   }
   const pause = editor.pauseAndere ? Math.max(0, Math.round(Number($('#e-pause-andere').value) || 0)) : editor.pause;
-  const grund = editor.grundAnderes ? $('#e-grund-anderes').value.trim() : editor.grund;
+  const grund = grundZusammensetzen();
   return {
     datum: editor.datum,
     von: $('#e-von').value,
@@ -932,13 +953,14 @@ $('#e-grund').addEventListener('click', (ereignis) => {
   const c = ereignis.target.closest('[data-grund], [data-grund-anderes]');
   if (!c) return;
   $('#e-fehler').textContent = '';
+  // Jeder Knopf schaltet ein und aus – so lassen sich mehrere Gründe kombinieren
   if (c.hasAttribute('data-grund-anderes')) {
-    editor.grundAnderes = true;
+    editor.grundAnderes = !editor.grundAnderes;
     zeichneEditor();
-    $('#e-grund-anderes').focus();
+    if (editor.grundAnderes) $('#e-grund-anderes').focus();
   } else {
-    editor.grundAnderes = false;
-    editor.grund = c.dataset.grund;
+    const g = c.dataset.grund;
+    editor.gruende.has(g) ? editor.gruende.delete(g) : editor.gruende.add(g);
     zeichneEditor();
   }
 });

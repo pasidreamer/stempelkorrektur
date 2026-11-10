@@ -32,6 +32,29 @@ const SP = {
   nacht: RAND + BREITE - 6, // rechtsbündig
 };
 
+const GRUND_BREITE = SP.stunden - SP.grund - 48;
+
+// Grund in höchstens zwei Zeilen, z. B. bei mehreren Gründen «Lüftec, ESL, Reparatur intern».
+// Umbrochen wird möglichst nach einem Komma (ein Grund bleibt beisammen), sonst zwischen Wörtern;
+// was auch in zwei Zeilen nicht passt, endet mit «…».
+function grundZeilen(e) {
+  if (!e || istAbwesenheit(e)) return [];
+  const teile = String(e.grund).split(', ').map((t, i, alle) => (i < alle.length - 1 ? `${t},` : t));
+  const kommaweise = PDF.breite(teile[0], 9.5) <= GRUND_BREITE && teile.length > 1;
+  const woerter = kommaweise ? teile : String(e.grund).split(' ');
+  let erste = '';
+  while (woerter.length && PDF.breite(erste ? `${erste} ${woerter[0]}` : woerter[0], 9.5) <= GRUND_BREITE) {
+    erste = erste ? `${erste} ${woerter.shift()}` : woerter.shift();
+  }
+  if (!erste) return [PDF.kuerzen(e.grund, GRUND_BREITE, 9.5)]; // ein einzelnes, sehr langes Wort
+  return woerter.length ? [erste, PDF.kuerzen(woerter.join(' '), GRUND_BREITE, 9.5)] : [erste];
+}
+
+// Zeilenhöhe: 22 pt, plus 12 pt für eine zweite Grund-Zeile, plus 10 pt für die Bemerkung
+function zeilenHoehe(e) {
+  return 22 + 12 * Math.max(grundZeilen(e).length - 1, 0) + (e?.bemerkung ? 10 : 0);
+}
+
 function kopf(seite, { person, montag, fortsetzung, ohneTabelle = false }) {
   const { woche, jahr } = kalenderwoche(montag);
   const sonntag = plusTage(montag, 6);
@@ -89,7 +112,7 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen, alle, ers
     const i = wochentagIndex(datum);
     const amTag = eintraege.filter((e) => e.datum === datum).sort((a, b) => a.von.localeCompare(b.von));
     const zeilen = amTag.length ? amTag : [null];
-    const hoehe = zeilen.reduce((h, e) => h + (e?.bemerkung ? 32 : 22), 0);
+    const hoehe = zeilen.reduce((h, e) => h + zeilenHoehe(e), 0);
 
     if (y + hoehe > UNTEN) {
       seite = dok.seite();
@@ -99,7 +122,7 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen, alle, ers
     if (i >= 5) seite.flaeche(RAND, y, BREITE, hoehe, WOCHENENDE);
 
     zeilen.forEach((e, nr) => {
-      const zeilenHoehe = e?.bemerkung ? 32 : 22;
+      const hoeheZeile = zeilenHoehe(e);
       const grund = y + 14.5;
       if (nr === 0) {
         seite.text(SP.tag, grund, WOCHENTAGE[i], { groesse: 9.5, fett: true, farbe: TEXT });
@@ -129,14 +152,15 @@ function personSeiten(dok, { person, montag, eintraege, einstellungen, alle, ers
         seite.text(SP.von, grund, e.von, z);
         seite.text(SP.bis, grund, e.bis + (r.ueberMitternacht ? ' +1' : ''), z);
         seite.text(SP.pause, grund, e.pause > 0 ? `${e.pause} min` : '–', z);
-        seite.text(SP.grund, grund, PDF.kuerzen(e.grund, SP.stunden - SP.grund - 48, 9.5), z);
+        const gz = grundZeilen(e);
+        gz.forEach((zeile, n) => seite.text(SP.grund, grund + n * 12, zeile, z));
         seite.text(SP.stunden, grund, dauer(r.netto), { ...z, fett: true, ausrichtung: 'rechts' });
         if (r.zuschlag) seite.text(SP.nacht, grund, `+${dauer(r.zuschlag)}`, { ...z, farbe: AKZENT, fett: true, ausrichtung: 'rechts' });
         if (e.bemerkung) {
-          seite.text(SP.grund, y + 26, PDF.kuerzen(e.bemerkung, SP.nacht - SP.grund, 8), { groesse: 8, farbe: GRAU });
+          seite.text(SP.grund, y + 26 + 12 * (gz.length - 1), PDF.kuerzen(e.bemerkung, SP.nacht - SP.grund, 8), { groesse: 8, farbe: GRAU });
         }
       }
-      y += zeilenHoehe;
+      y += hoeheZeile;
     });
     seite.linie(RAND, y, RAND + BREITE, y, { farbe: LINIE });
   }

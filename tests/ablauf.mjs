@@ -81,7 +81,11 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   await setze('#e-von', '23:00');
   await setze('#e-bis', '04:00');
   await klick('[data-pause="0"]');
+  // Gründe sind mehrfach wählbar: den vorgeschlagenen (Lüftec) abwählen, ESL wählen
+  await evaluate(`document.querySelector('[data-grund="Lüftec"]').click()`);
   await evaluate(`document.querySelector('[data-grund="ESL"]').click()`);
+  const gedrueckt = await evaluate(`[...document.querySelectorAll('#e-grund .chip[aria-pressed=true]')].map((c) => c.textContent.trim()).join(',')`);
+  pruefe(gedrueckt === 'ESL', `Grund umgewählt: nur ESL gedrückt (${gedrueckt})`);
   await setze('#e-bemerkung', 'Notfall Lüftung');
   await shot(`${ordner}/04-eintrag-nacht.png`);
   pruefe((await text('.ergebnis-haupt')) === '= 5:00 h (+1:15 h Nachtzuschlag)', `Nachtzuschlag angezeigt (${await text('.ergebnis-haupt')})`);
@@ -92,6 +96,12 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   // 4. Fehler werden abgefangen
   await evaluate(`document.querySelectorAll('[data-neu]')[2].click()`);
   await sleep(200);
+  // Mehrere Gründe antippen: beide bleiben gedrückt, «Anderer» kommt dazu
+  await evaluate(`document.querySelector('[data-grund="Reparatur intern"]').click()`);
+  await klick('[data-grund-anderes]');
+  await setze('#e-grund-anderes', 'Kunde Meier');
+  const mehrere = await evaluate(`[...document.querySelectorAll('#e-grund .chip[aria-pressed=true]')].map((c) => c.textContent.trim()).join(',')`);
+  pruefe(mehrere === 'ESL,Reparatur intern,Anderer …', `Mehrere Gründe gleichzeitig gewählt (${mehrere})`);
   await setze('#e-von', '08:00');
   await setze('#e-bis', '08:00');
   await klick('#form-eintrag button[type=submit]');

@@ -15,6 +15,11 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
   eingetragen.
 - **Eintragen:** Tag antippen → Von/Bis (die Handy-Zeitauswahl), Pause und Grund antippen,
   Speichern. Die App schlägt immer die Werte vom letzten Eintrag vor.
+- **Mehrere Gründe (seit 10.11.2026):** Bei «Grund» lassen sich mehrere Knöpfe antippen (nochmals
+  tippen = abwählen), auch zusammen mit «Anderer …». Gespeichert wird ein Text wie
+  «Lüftec, ESL, Kunde Meier», darum funktionieren alte Einträge, Mail und PDF unverändert. Im PDF
+  bricht eine lange Kombination nach einem Komma auf eine zweite Zeile um, statt abgeschnitten zu
+  werden.
 - **Gilt für:** Im Eintrag weitere Personen antippen, dann wird derselbe Eintrag für alle
   gespeichert. Die Auswahl bleibt für den nächsten Tag stehen (praktisch, wenn das Team zusammen
   unterwegs war).

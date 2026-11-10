@@ -148,3 +148,19 @@ test('Ohne gespeicherte Unterschrift bleiben die Felder leer (wie bisher)', () =
   assert.ok(!text.includes(' 1 J 1 j '), 'keine Zeichnung');
   assert.ok(!text.includes('(29.09.2026)'), 'kein Datum im Feld');
 });
+
+test('Mehrere Gründe: lange Kombination bricht auf eine zweite Zeile um statt abgeschnitten zu werden', () => {
+  const liste = [
+    { id: 'm1', personId: 'p1', datum: '2026-09-21', von: '07:00', bis: '16:00', pause: 30, grund: 'Lüftec, ESL', bemerkung: '' },
+    { id: 'm2', personId: 'p1', datum: '2026-09-22', von: '07:00', bis: '16:00', pause: 30, grund: 'Lüftec, ESL, Reparatur intern', bemerkung: 'Baustelle' },
+  ];
+  const bytes = Blatt.erstellen({ montag: '2026-09-21', personen: [personen[0]], eintraege: liste, einstellungen });
+  const text = Buffer.from(bytes).toString('latin1');
+  assert.ok(text.includes(String.raw`(L\374ftec, ESL)`), 'kurze Kombination auf einer Zeile');
+  assert.ok(!text.includes(String.raw`\205`), 'nichts mit «…» abgeschnitten');
+  const y = (inhalt) => Number(text.match(new RegExp(String.raw`([\d.]+) Tm \(${inhalt}\)`))[1]);
+  assert.ok(text.includes('(intern)') || text.includes('(Reparatur intern)'), 'Rest steht auf der zweiten Zeile');
+  const zweite = text.includes('(intern)') ? y('intern') : y('Reparatur intern');
+  assert.equal(y('Baustelle') - zweite, -11.5, 'Bemerkung rutscht unter die zweite Zeile (gleicher Abstand wie sonst)');
+  writeFileSync('tests/ausgabe/mehrere-gruende.pdf', bytes);
+});
