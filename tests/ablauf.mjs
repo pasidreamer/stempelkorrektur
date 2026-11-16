@@ -358,6 +358,38 @@ await withPage(url, { width: 390, height: 844 }, async ({ send, evaluate, shot, 
   await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
   }
 
+  // 10. Stempeluhr: einstempeln, App neu laden (Zeit läuft weiter), ausstempeln → Eintrag mit Von/Bis
+  const vorher = await evaluate(`JSON.parse(localStorage.getItem('stempelkorrektur.v1')).eintraege.length`);
+  await klick('[data-stempel="ein"]');
+  pruefe((await text('.stempel-zeit')) === '0:00 h', `Eingestempelt, Zeit läuft (${await text('.stempel-zeit')})`);
+  // Start 2:15 h zurückdatieren, als wäre schon gearbeitet worden; das Neuladen zeigt, dass es gespeichert ist
+  await evaluate(`(() => { const z = JSON.parse(localStorage.getItem('stempelkorrektur.v1'));
+    z.stempel.start = new Date(Date.now() - 135 * 60000).toISOString();
+    localStorage.setItem('stempelkorrektur.v1', JSON.stringify(z)); })()`);
+  await send('Page.reload');
+  await sleep(1200);
+  pruefe((await text('.stempel-zeit')) === '2:15 h', `Nach dem Neuladen läuft die Zeit weiter (${await text('.stempel-zeit')})`);
+  await shot(`${ordner}/10-stempeluhr.png`);
+  const erwartet = await evaluate(`(() => { const s = new Date(JSON.parse(localStorage.getItem('stempelkorrektur.v1')).stempel.start);
+    return s.toTimeString().slice(0, 5) + '-' + new Date().toTimeString().slice(0, 5); })()`);
+  await klick('[data-stempel="aus"]');
+  await sleep(400);
+  const vonBis = await evaluate(`document.getElementById('e-von').value + '-' + document.getElementById('e-bis').value`);
+  pruefe((await offen('dlg-eintrag')) && vonBis === erwartet, `Ausstempeln öffnet den Eintrag mit Von/Bis (${vonBis})`);
+  // Schliessen ohne Speichern: die gestempelte Zeit bleibt stehen
+  await klick('#dlg-eintrag [data-schliessen]');
+  pruefe(Boolean(await evaluate(`document.querySelector('[data-stempel="eintragen"]')`)), 'Nicht gespeichert: Karte bietet «Als Eintrag speichern» an');
+  await klick('[data-stempel="eintragen"]');
+  await sleep(400);
+  await setze('#e-von', '07:00'); // bearbeiten geht wie bei jedem Eintrag
+  await klick('[data-pause="0"]');
+  await klick('#form-eintrag button[type=submit]');
+  await sleep(300);
+  const nachher = await evaluate(`JSON.parse(localStorage.getItem('stempelkorrektur.v1'))`);
+  const neu = nachher.eintraege.find((e) => e.von === '07:00' && e.bis === erwartet.slice(6) && e.pause === 0);
+  pruefe(Boolean(neu) && nachher.eintraege.length > vorher, 'Gestempelte Zeit ist als Eintrag gespeichert (mit geänderter Startzeit)');
+  pruefe(nachher.stempel === null && Boolean(await evaluate(`document.querySelector('[data-stempel="ein"]')`)), 'Danach wieder «Einstempeln» bereit');
+
   const konsole = errors();
   pruefe(konsole.length === 0, `Keine Fehler in der Konsole${konsole.length ? ': ' + konsole.join(' | ') : ''}`);
 });

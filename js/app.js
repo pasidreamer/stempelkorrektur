@@ -75,6 +75,7 @@ function sendeStatus(personId) {
 function zeichne() {
   zeichneWoche();
   zeichnePersonen();
+  zeichneStempeluhr();
   zeichneStatus();
   zeichneTage();
   zeichneFuss();
@@ -201,6 +202,95 @@ function zeichneTage() {
   $('#tage').innerHTML = standKarte(eigene) + tage.join('');
 }
 
+// ---------- Stempeluhr ----------
+// Einstempeln merkt sich nur die Startzeit (im Handy-Speicher, übersteht also auch das Schliessen
+// der App). Ausstempeln öffnet den normalen Eintrag mit Datum, Von und Bis schon ausgefüllt –
+// dort kommen Pause und Grund dazu und alles lässt sich noch korrigieren. Erst «Speichern»
+// macht daraus einen Eintrag; bis dahin bleibt die gestempelte Zeit stehen.
+
+const LANGE_LAUFZEIT = 16 * 60; // ab so vielen Minuten fragt die App, ob das Ausstempeln vergessen ging
+
+const uhrzeit = (d) => d.toTimeString().slice(0, 5);
+const laufzeit = (start, ende = new Date()) => Math.max(0, Math.floor((ende - start) / 60000));
+
+function stempelTag(d) {
+  const datum = zeit.alsText(d);
+  return datum === zeit.heute() ? 'heute' : `${zeit.WOCHENTAGE_KURZ[zeit.wochentagIndex(datum)]} ${zeit.kurzDatum(datum)}`;
+}
+
+function zeichneStempeluhr() {
+  const feld = $('#stempeluhr');
+  const st = zustand.stempel;
+  if (einstellungen().personen.length === 0) {
+    feld.innerHTML = '';
+    return;
+  }
+  if (!st) {
+    const name = person(ansicht.personId)?.name ?? '';
+    feld.innerHTML = `
+      <button type="button" class="btn btn-primaer btn-gross stempel-knopf" data-stempel="ein">
+        ${symbol('uhr')} Einstempeln
+      </button>
+      <p class="stempel-hinweis">Startet jetzt die Arbeitszeit${einstellungen().personen.length > 1 ? ` für ${esc(name)}` : ''}.</p>`;
+    return;
+  }
+  const start = new Date(st.start);
+  const name = einstellungen().personen.length > 1 ? `${esc(person(st.personId)?.name ?? '')} · ` : '';
+  if (!st.ende) {
+    const min = laufzeit(start);
+    feld.innerHTML = `
+      <section class="stempel-karte stempel-laeuft">
+        <div class="stempel-kopf">
+          <span class="stempel-punkt" aria-hidden="true"></span>
+          <span>${name}Eingestempelt ${stempelTag(start)} um ${uhrzeit(start)}</span>
+        </div>
+        <div class="stempel-zeit">${zeit.dauer(min)}</div>
+        ${min >= LANGE_LAUFZEIT ? '<p class="stempel-warnung">Läuft schon sehr lange – vergessen auszustempeln? Beim Ausstempeln lässt sich «Bis» noch ändern.</p>' : ''}
+        <button type="button" class="btn btn-primaer btn-gross" data-stempel="aus">${symbol('uhr')} Ausstempeln</button>
+        <button type="button" class="btn btn-leise stempel-weg" data-stempel="verwerfen">Einstempeln rückgängig</button>
+      </section>`;
+    return;
+  }
+  const ende = new Date(st.ende);
+  feld.innerHTML = `
+    <section class="stempel-karte">
+      <div class="stempel-kopf"><span>${name}Gestempelt ${stempelTag(start)}: ${uhrzeit(start)} – ${uhrzeit(ende)} (${zeit.dauer(laufzeit(start, ende))})</span></div>
+      <p class="stempel-warnung">Noch nicht gespeichert.</p>
+      <button type="button" class="btn btn-primaer btn-gross" data-stempel="eintragen">Als Eintrag speichern</button>
+      <button type="button" class="btn btn-leise stempel-weg" data-stempel="verwerfen">Verwerfen</button>
+    </section>`;
+}
+
+function einstempeln() {
+  zustand.stempel = { personId: ansicht.personId, start: new Date().toISOString() };
+  speichereUndZeichne();
+  zeigeToast(`Eingestempelt um ${uhrzeit(new Date())}`);
+}
+
+function ausstempeln() {
+  zustand.stempel.ende = new Date().toISOString();
+  speichern(zustand);
+  stempelEintragen();
+}
+
+// Öffnet den Eintrag für den gestempelten Tag mit Von/Bis aus der Stempeluhr
+function stempelEintragen() {
+  const st = zustand.stempel;
+  const start = new Date(st.start);
+  const datum = zeit.alsText(start);
+  ansicht.montag = zeit.montagDerWoche(datum);
+  if (person(st.personId)) ansicht.personId = st.personId;
+  zeichne();
+  oeffneEditor({ datum, vorgabe: { von: uhrzeit(start), bis: uhrzeit(new Date(st.ende)) } });
+}
+
+function stempelVerwerfen() {
+  const frage = zustand.stempel.ende ? 'Die gestempelte Zeit verwerfen?' : 'Einstempeln rückgängig machen?';
+  if (!confirm(frage)) return;
+  zustand.stempel = null;
+  speichereUndZeichne();
+}
+
 // «Wochenstand»: eingetragene Stunden (inkl. Nachtzuschlag, der wird ja gutgeschrieben)
 // gegenüber dem Wochensoll aus den Einstellungen. Nur in der App, nicht im PDF.
 function standKarte(eigene) {
@@ -277,6 +367,7 @@ const editor = {
   personen: new Set(),
   pause: 30,
   pauseAndere: false,
+  ausStempeluhr: false, // Eintrag kommt vom Ausstempeln: nach dem Speichern die Stempeluhr leeren
   gruende: new Set(), // mehrere Gründe antippbar; gespeichert als «Lüftec, ESL»
   grundAnderes: false,
 };
@@ -301,17 +392,19 @@ function grundZusammensetzen() {
   return teile.join(GRUND_TRENNER);
 }
 
-function oeffneEditor({ datum, id }) {
+// vorgabe: { von, bis } aus der Stempeluhr – ersetzt den Vorschlag vom letzten Eintrag
+function oeffneEditor({ datum, id, vorgabe }) {
   const e = id ? zustand.eintraege.find((x) => x.id === id) : null;
   const vorschlag = zustand.zuletzt ?? { von: '07:00', bis: '16:30', pause: 30, grund: einstellungen().gruende[0] ?? '' };
   // Bei Krank/Ferien gibt es keine Zeiten: für den Fall, dass man auf «Arbeit» umschaltet,
   // trotzdem die üblichen Werte vorschlagen.
   let werte;
-  if (!e) werte = { ...vorschlag, datum, bemerkung: '' };
+  if (!e) werte = { ...vorschlag, ...vorgabe, datum, bemerkung: '' };
   else if (zeit.istAbwesenheit(e)) werte = { ...e, von: vorschlag.von, bis: vorschlag.bis, pause: vorschlag.pause, grund: vorschlag.grund };
   else werte = e;
 
   editor.id = e?.id ?? null;
+  editor.ausStempeluhr = Boolean(vorgabe);
   editor.art = e?.art ?? 'arbeit';
   editor.umfang = null;
   $('#e-umfang-andere').value = '04:00';
@@ -534,6 +627,7 @@ function speichereEintrag(ereignis) {
 
   if (!w.art) zustand.zuletzt = { von: w.von, bis: w.bis, pause: w.pause, grund: w.grund };
   if (!editor.id) ansicht.letzteAuswahl = [...editor.personen];
+  if (editor.ausStempeluhr) zustand.stempel = null; // gestempelte Zeit ist jetzt ein Eintrag
 
   $('#dlg-eintrag').close();
   speichereUndZeichne();
@@ -872,6 +966,17 @@ function wechsleWoche(tage) {
   ansicht.montag = zeit.plusTage(ansicht.montag, tage);
   zeichne();
 }
+
+$('#stempeluhr').addEventListener('click', (ereignis) => {
+  const aktion = ereignis.target.closest('[data-stempel]')?.dataset.stempel;
+  if (aktion === 'ein') einstempeln();
+  else if (aktion === 'aus') ausstempeln();
+  else if (aktion === 'eintragen') stempelEintragen();
+  else if (aktion === 'verwerfen') stempelVerwerfen();
+});
+// Laufende Zeit nachführen – und sofort, wenn die App wieder in den Vordergrund kommt
+setInterval(() => zustand.stempel && !zustand.stempel.ende && zeichneStempeluhr(), 30000);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && zeichneStempeluhr());
 
 $('#woche-zurueck').addEventListener('click', () => wechsleWoche(-7));
 $('#woche-vor').addEventListener('click', () => wechsleWoche(7));

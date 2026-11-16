@@ -200,6 +200,28 @@ h1, h2 { margin: 0; }
 }
 .tag-mehr svg { width: 18px; height: 18px; }
 
+/* Stempeluhr: Ein-/Ausstempeln oben über den Tagen */
+.stempeluhr { margin-bottom: 12px; }
+.stempeluhr:empty { display: none; }
+.stempel-knopf svg, .stempel-karte .btn-primaer svg { width: 22px; height: 22px; }
+.stempel-hinweis { margin: 6px 0 0; text-align: center; font-size: 0.88rem; color: var(--text-2); }
+.stempel-karte {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--karte); border: 1px solid var(--linie); border-radius: var(--radius);
+  box-shadow: var(--schatten); padding: 14px 16px;
+}
+.stempel-laeuft { border-color: var(--akzent); background: var(--akzent-weich); }
+.stempel-kopf { display: flex; align-items: center; gap: 8px; font-weight: 650; color: var(--text-2); }
+.stempel-punkt {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--ok); flex: none;
+  animation: stempel-puls 1.6s ease-in-out infinite;
+}
+@keyframes stempel-puls { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .stempel-punkt { animation: none; } }
+.stempel-zeit { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stempel-warnung { margin: 0; font-size: 0.9rem; color: var(--warn); font-weight: 600; }
+.stempel-weg { min-height: 40px; color: var(--text-2); border-color: transparent; }
+
 /* Wochenstand: eingetragene Stunden gegenüber dem Wochensoll */
 .stand {
   background: var(--karte); border: 1px solid var(--linie); border-radius: var(--radius);

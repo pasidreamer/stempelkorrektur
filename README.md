@@ -15,6 +15,15 @@ Begonnen am 28.09.2026, PDF-Versand seit 29.09.2026.
   eingetragen.
 - **Eintragen:** Tag antippen → Von/Bis (die Handy-Zeitauswahl), Pause und Grund antippen,
   Speichern. Die App schlägt immer die Werte vom letzten Eintrag vor.
+- **Stempeluhr (seit 16.11.2026):** Oben über den Tagen «Einstempeln» antippen, wenn die Arbeit
+  beginnt (gilt für die Person im gewählten Reiter). Die Karte zeigt dann, seit wann und wie lange
+  schon gearbeitet wird. Die Startzeit steht im Handy-Speicher, sie bleibt also auch, wenn die App
+  geschlossen oder das Handy neu gestartet wird. «Ausstempeln» öffnet den normalen Eintrag für den
+  Starttag mit Von/Bis schon ausgefüllt: Pause, Grund und «Gilt für» wählen, Zeiten bei Bedarf
+  korrigieren, Speichern. Wird das Blatt ohne Speichern geschlossen, bleibt die gestempelte Zeit
+  auf der Karte stehen («Als Eintrag speichern» oder «Verwerfen»). Läuft die Uhr länger als
+  16 Stunden, fragt die Karte, ob das Ausstempeln vergessen ging. Über Mitternacht funktioniert
+  wie beim Eintragen (Bis früher als Von = Folgetag).
 - **Mehrere Gründe (seit 10.11.2026):** Bei «Grund» lassen sich mehrere Knöpfe antippen (nochmals
   tippen = abwählen), auch zusammen mit «Anderer …». Gespeichert wird ein Text wie
   «Lüftec, ESL, Kunde Meier», darum funktionieren alte Einträge, Mail und PDF unverändert. Im PDF
@@ -127,7 +136,7 @@ statt es anzuzeigen. Das Teilen mit Chrome auf dem echten Samsung ist noch zu be
 |---|---|
 | `index.html` | Aufbau: Kopf, Tage, Senden-Knopf und die drei Blätter (Eintrag, Senden, Einstellungen) |
 | `css/style.css` | Aussehen, hell und dunkel (folgt der Handy-Einstellung) |
-| `js/app.js` | Oberfläche: zeichnen, auf Antippen reagieren, Senden (Teilen bzw. Download + Mail) |
+| `js/app.js` | Oberfläche: zeichnen, auf Antippen reagieren, Stempeluhr, Senden (Teilen bzw. Download + Mail) |
 | `js/zeit.js` | Datum, Kalenderwoche (ISO), Stunden- und Nachtrechnung, ohne Bildschirm und darum testbar |
 | `js/speicher.js` | Speichern/Laden im Handy; nur diese Datei kennt das Speicherformat |
 | `js/mail.js` | Betreff, Begleittext zum PDF, Text-Mail und `mailto:`-Link |

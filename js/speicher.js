@@ -26,6 +26,7 @@ function leererZustand() {
     eintraege: [], // [{ id, personId, datum, von, bis, pause, grund, bemerkung }]
     gesendet: {}, // { '2026-W40': { am, signatur } }
     zuletzt: null, // zuletzt gespeicherte Werte als Vorschlag für den nächsten Eintrag
+    stempel: null, // laufende Stempeluhr: { personId, start, ende } (ende erst nach «Ausstempeln»)
   };
 }
 
